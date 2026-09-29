@@ -1,5 +1,5 @@
 name: pictocomm_app
-description: "A new Flutter project."
+description: "Comunicación por imágenes para niños autistas no verbales (2-5 años)."
 # The following line prevents the package from being accidentally published to
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
 publish_to: 'none' # Remove this line if you wish to publish to pub.dev
@@ -34,9 +34,16 @@ dependencies:
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.
   cupertino_icons: ^1.0.8
+
+  # Inyección de dependencias + estado global. Un ChangeNotifier por feature.
   provider: ^6.1.2
-  path_provider: ^2.1.4
-  shared_preferences: ^2.3.2
+
+  # Pendiente: persistencia de perfiles, favoritos y pictos propios.
+  # path_provider: ^2.1.4
+  # shared_preferences: ^2.3.2
+
+  # Pendiente: cliente HTTP para el backend (se implementa con backend).
+  # http: ^1.2.0
 
 dev_dependencies:
   flutter_test:
@@ -60,6 +67,8 @@ flutter:
   # the material Icons class.
   uses-material-design: true
 
+  # Cada categoría de assets/images/ se declara acá. AssetCatalogLocalDataSource
+  # lee estas carpetas para armar el catálogo.
   assets:
     - assets/images/comida/
     - assets/images/lugares/

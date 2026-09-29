@@ -1,30 +1,18 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
+import 'package:flutter/services.dart';
 
-import 'providers/app_provider.dart';
-import 'screens/home_screen.dart';
-import 'services/storage_service.dart';
+import 'app.dart';
+import 'core/di/injector.dart';
 
 void main() {
-  runApp(const PictoCommApp());
-}
+  WidgetsFlutterBinding.ensureInitialized();
 
-class PictoCommApp extends StatelessWidget {
-  const PictoCommApp({super.key});
+  // Bloquear rotación: el niño no debería girar el dispositivo y perder el
+  // tablero. En landscape el layout también se rompería.
+  SystemChrome.setPreferredOrientations([
+    DeviceOrientation.portraitUp,
+    DeviceOrientation.portraitDown,
+  ]);
 
-  @override
-  Widget build(BuildContext context) {
-    return ChangeNotifierProvider(
-      create: (_) => AppProvider(const LocalStorageService())
-        ..loadCategories(),
-      child: MaterialApp(
-        title: 'PictoComm',
-        theme: ThemeData(
-          colorScheme: ColorScheme.fromSeed(seedColor: Colors.blue),
-          useMaterial3: true,
-        ),
-        home: const HomeScreen(),
-      ),
-    );
-  }
+  runApp(PictoCommApp(dependencies: AppDependencies.production()));
 }
