@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../../../../core/constants/app_routes.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../../../core/widgets/app_bottom_nav.dart';
 import '../../domain/entities/category.dart';
 import '../providers/catalog_provider.dart';
 import '../widgets/empty_catalog_view.dart';
@@ -21,6 +23,44 @@ final class _HomeScreenState extends State<HomeScreen> {
     setState(() => _query = value.trim().toLowerCase());
   }
 
+  Future<void> _openAddMenu() async {
+    final choice = await showModalBottomSheet<String>(
+      context: context,
+      backgroundColor: AppColors.surface,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
+      builder: (context) {
+        return SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const SizedBox(height: 8),
+              ListTile(
+                leading: const Icon(Icons.folder_special_outlined, color: AppColors.accent),
+                title: const Text('Nuevo catálogo', style: TextStyle(fontWeight: FontWeight.w600)),
+                subtitle: const Text('Crear una categoría', style: TextStyle(fontSize: 12, color: AppColors.textSecondary)),
+                onTap: () => Navigator.of(context).pop(AppRoutes.addCategory),
+              ),
+              ListTile(
+                leading: const Icon(Icons.add_photo_alternate_outlined, color: AppColors.accent),
+                title: const Text('Nuevo pictograma', style: TextStyle(fontWeight: FontWeight.w600)),
+                subtitle: const Text('Agregar una imagen a una categoría', style: TextStyle(fontSize: 12, color: AppColors.textSecondary)),
+                onTap: () => Navigator.of(context).pop(AppRoutes.addPicto),
+              ),
+              const SizedBox(height: 8),
+            ],
+          ),
+        );
+      },
+    );
+    if (choice == null || !mounted) {
+      return;
+    }
+    await Navigator.of(context).pushNamed(choice);
+    if (mounted) {
+      context.read<CatalogProvider>().load();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final state = context.watch<CatalogProvider>().state;
@@ -29,7 +69,7 @@ final class _HomeScreenState extends State<HomeScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            const _Header(),
+            _Header(onAddTapped: _openAddMenu),
             Expanded(
               child: switch (state) {
                 CatalogLoadingState() => const LoadingCatalogView(),
@@ -41,13 +81,15 @@ final class _HomeScreenState extends State<HomeScreen> {
           ],
         ),
       ),
-      bottomNavigationBar: const _HomeNavBar(),
+      bottomNavigationBar: const AppBottomNav(currentIndex: 0),
     );
   }
 }
 
 final class _Header extends StatelessWidget {
-  const _Header();
+  const _Header({required this.onAddTapped});
+
+  final VoidCallback onAddTapped;
 
   @override
   Widget build(BuildContext context) {
@@ -58,8 +100,9 @@ final class _Header extends StatelessWidget {
         children: [
           const Text('Hola 👋', style: TextStyle(fontSize: 22, fontWeight: FontWeight.w700, color: AppColors.textPrimary)),
           IconButton.filled(
-            onPressed: () {},
+            onPressed: onAddTapped,
             icon: const Icon(Icons.add),
+            tooltip: 'Agregar catálogo o pictograma',
             style: IconButton.styleFrom(
               backgroundColor: AppColors.accent,
               foregroundColor: AppColors.surface,
@@ -154,7 +197,7 @@ final class _SectionRow extends StatelessWidget {
         children: [
           const Text('Mis Catálogos', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: AppColors.textPrimary)),
           TextButton(
-            onPressed: () {},
+            onPressed: () => Navigator.of(context).pushNamed(AppRoutes.pictogramas),
             style: TextButton.styleFrom(textStyle: const TextStyle(fontSize: 13)),
             child: const Text('Ver todos'),
           ),
@@ -209,31 +252,38 @@ final class _CategoryCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(color: AppColors.surface, borderRadius: BorderRadius.circular(16)),
-      child: Row(
-        children: [
-          Container(
-            width: 48,
-            height: 48,
-            decoration: BoxDecoration(color: AppColors.accentLight, borderRadius: BorderRadius.circular(12)),
-            child: Icon(_categoryIcon(category.name), color: AppColors.accent, size: 24),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(category.name, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: AppColors.textPrimary)),
-                const SizedBox(height: 2),
-                Text(pictoCount == 1 ? '1 pictograma' : '$pictoCount pictogramas', style: const TextStyle(fontSize: 12, color: AppColors.textSecondary)),
-              ],
+    return InkWell(
+      onTap: () => Navigator.of(context).pushNamed(AppRoutes.category, arguments: category),
+      borderRadius: BorderRadius.circular(16),
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 12),
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(color: AppColors.surface, borderRadius: BorderRadius.circular(16)),
+        child: Row(
+          children: [
+            Container(
+              width: 48,
+              height: 48,
+              decoration: BoxDecoration(
+                color: category.color?.withValues(alpha: 0.15) ?? AppColors.accentLight,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Icon(_categoryIcon(category.name), color: category.color ?? AppColors.accent, size: 24),
             ),
-          ),
-          const Icon(Icons.chevron_right, color: AppColors.textMuted),
-        ],
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(category.name, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: AppColors.textPrimary)),
+                  const SizedBox(height: 2),
+                  Text(pictoCount == 1 ? '1 pictograma' : '$pictoCount pictogramas', style: const TextStyle(fontSize: 12, color: AppColors.textSecondary)),
+                ],
+              ),
+            ),
+            const Icon(Icons.chevron_right, color: AppColors.textMuted),
+          ],
+        ),
       ),
     );
   }
@@ -247,34 +297,5 @@ final class _CategoryCard extends StatelessWidget {
 
   static IconData _categoryIcon(String name) {
     return _iconsByName[name.toLowerCase()] ?? Icons.category;
-  }
-}
-
-final class _HomeNavBar extends StatelessWidget {
-  const _HomeNavBar();
-
-  static const List<(IconData icon, IconData selectedIcon, String label)> _destinations = [
-    (Icons.home_outlined, Icons.home, 'Inicio'),
-    (Icons.image_outlined, Icons.image, 'Pictogramas'),
-    (Icons.chat_bubble_outline, Icons.chat_bubble, 'Comunicar'),
-    (Icons.person_outline, Icons.person, 'Perfil'),
-  ];
-
-  @override
-  Widget build(BuildContext context) {
-    return NavigationBar(
-      selectedIndex: 0,
-      onDestinationSelected: (_) {},
-      backgroundColor: AppColors.surface,
-      indicatorColor: AppColors.accentLight,
-      destinations: [
-        for (final (icon, selectedIcon, label) in _destinations)
-          NavigationDestination(
-            icon: Icon(icon, color: AppColors.textSecondary),
-            selectedIcon: Icon(selectedIcon, color: AppColors.accent),
-            label: label,
-          ),
-      ],
-    );
   }
 }

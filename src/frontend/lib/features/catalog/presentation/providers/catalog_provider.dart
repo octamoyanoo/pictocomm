@@ -1,6 +1,9 @@
+import 'dart:ui' show Color;
+
 import 'package:flutter/foundation.dart' hide Category;
 
 import '../../domain/entities/category.dart';
+import '../../domain/entities/picto.dart';
 import '../../domain/repositories/category_repository.dart';
 import '../../domain/repositories/picto_repository.dart';
 
@@ -55,5 +58,17 @@ final class CatalogProvider extends ChangeNotifier {
       _state = CatalogFailureState(error.toString());
     }
     notifyListeners();
+  }
+
+  Future<Category> createCategory(String name, Color? color) async {
+    final created = await categoryRepository.createCategory(Category(id: '', name: name, color: color));
+    await load();
+    return created;
+  }
+
+  Future<Picto> createPicto(Picto picto) async {
+    final created = await pictoRepository.createPicto(picto);
+    await load();
+    return created;
   }
 }

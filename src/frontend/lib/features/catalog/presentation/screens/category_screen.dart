@@ -1,0 +1,123 @@
+import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+
+import '../../../../core/constants/app_routes.dart';
+import '../../../../core/theme/app_theme.dart';
+import '../../domain/entities/category.dart';
+import '../../domain/entities/picto.dart';
+import '../providers/pictos_provider.dart';
+import '../widgets/loading_catalog_view.dart';
+import '../widgets/picto_card.dart';
+
+final class CategoryScreen extends StatelessWidget {
+  const CategoryScreen({required this.category, super.key});
+
+  final Category category;
+
+  @override
+  Widget build(BuildContext context) {
+    final state = context.watch<PictosProvider>().state;
+    return Scaffold(
+      body: SafeArea(
+        child: switch (state) {
+          PictosLoadingState() || PictosFailureState() => const LoadingCatalogView(),
+          PictosLoadedState() => _CategoryContent(state: state, category: category),
+        },
+      ),
+    );
+  }
+}
+
+final class _CategoryContent extends StatelessWidget {
+  const _CategoryContent({required this.state, required this.category});
+
+  final PictosLoadedState state;
+  final Category category;
+
+  @override
+  Widget build(BuildContext context) {
+    final pictos = state.pictosOf(category.id);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _CategoryHeader(category: category, pictoCount: pictos.length),
+        Expanded(
+          child: pictos.isEmpty
+              ? Center(
+                  child: Text(
+                    'Todavía no hay pictogramas en esta categoría',
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(fontSize: 14, color: AppColors.textSecondary),
+                  ),
+                )
+              : LayoutBuilder(
+                  builder: (context, constraints) {
+                    const cardWidth = 96.0;
+                    final columns = (constraints.maxWidth / cardWidth).floor().clamp(2, 5);
+                    return GridView.builder(
+                      padding: const EdgeInsets.fromLTRB(20, 8, 20, 16),
+                      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                        crossAxisCount: columns,
+                        mainAxisSpacing: 12,
+                        crossAxisSpacing: 12,
+                        childAspectRatio: 0.82,
+                      ),
+                      itemCount: pictos.length,
+                      itemBuilder: (context, index) {
+                        final picto = pictos[index];
+                        return PictoCard(
+                          picto: picto,
+                          onTap: () => _openPicto(context, picto),
+                        );
+                      },
+                    );
+                  },
+                ),
+        ),
+      ],
+    );
+  }
+
+  void _openPicto(BuildContext context, Picto picto) {
+    Navigator.of(context).pushNamed(AppRoutes.picto, arguments: picto);
+  }
+}
+
+final class _CategoryHeader extends StatelessWidget {
+  const _CategoryHeader({required this.category, required this.pictoCount});
+
+  final Category category;
+  final int pictoCount;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
+      child: Row(
+        children: [
+          IconButton(
+            onPressed: () => Navigator.of(context).maybePop(),
+            icon: const Icon(Icons.arrow_back, color: AppColors.textPrimary),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  category.name,
+                  style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w700, color: AppColors.textPrimary),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  pictoCount == 1 ? '1 pictograma' : '$pictoCount pictogramas',
+                  style: const TextStyle(fontSize: 13, color: AppColors.textSecondary),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}

@@ -43,6 +43,18 @@ final class PictoModel {
     };
   }
 
+  factory PictoModel.fromEntity(Picto entity) {
+    return PictoModel(
+      id: entity.id,
+      label: entity.label,
+      categoryId: entity.categoryId,
+      imageUrl: entity.imageUrl ?? '',
+      source: entity.source,
+      createdAt: entity.createdAt,
+      updatedAt: entity.updatedAt,
+    );
+  }
+
   Picto toEntity() {
     return Picto(
       id: id,

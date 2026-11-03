@@ -14,3 +14,7 @@ final class UnimplementedFeatureException extends AppException {
 final class DataSourceException extends AppException {
   const DataSourceException(super.message);
 }
+
+final class DuplicateCatalogException extends AppException {
+  const DuplicateCatalogException(super.message);
+}

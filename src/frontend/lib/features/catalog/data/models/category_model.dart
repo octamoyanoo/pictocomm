@@ -28,6 +28,15 @@ final class CategoryModel {
     return <String, dynamic>{'id': id, 'name': name, 'color': formatColor(color), 'icon': icon};
   }
 
+  factory CategoryModel.fromEntity(Category entity) {
+    return CategoryModel(
+      id: entity.id,
+      name: entity.name,
+      color: entity.color?.toARGB32() ?? 0xFF7C5CBF,
+      icon: entity.icon ?? 'category',
+    );
+  }
+
   Category toEntity() {
     return Category(id: id, name: name, color: Color(color), icon: icon);
   }
