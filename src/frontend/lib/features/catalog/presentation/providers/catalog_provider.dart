@@ -13,11 +13,15 @@ final class CatalogLoadingState extends CatalogState {
 }
 
 final class CatalogLoadedState extends CatalogState {
-  const CatalogLoadedState({required this.categories});
+  const CatalogLoadedState({required this.categories, required this.pictoCounts});
 
   final List<Category> categories;
 
+  final Map<String, int> pictoCounts;
+
   bool get isEmpty => categories.isEmpty;
+
+  int pictoCountOf(String categoryId) => pictoCounts[categoryId] ?? 0;
 }
 
 final class CatalogFailureState extends CatalogState {
@@ -41,7 +45,12 @@ final class CatalogProvider extends ChangeNotifier {
     notifyListeners();
     try {
       final categories = await categoryRepository.getCategories();
-      _state = CatalogLoadedState(categories: categories);
+      final pictos = await pictoRepository.getPictos();
+      final pictoCounts = <String, int>{};
+      for (final picto in pictos) {
+        pictoCounts[picto.categoryId] = (pictoCounts[picto.categoryId] ?? 0) + 1;
+      }
+      _state = CatalogLoadedState(categories: categories, pictoCounts: pictoCounts);
     } on Object catch (error) {
       _state = CatalogFailureState(error.toString());
     }

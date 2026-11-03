@@ -2,55 +2,279 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../../../core/theme/app_theme.dart';
+import '../../domain/entities/category.dart';
+import '../providers/catalog_provider.dart';
 import '../widgets/empty_catalog_view.dart';
 import '../widgets/loading_catalog_view.dart';
-import '../providers/catalog_provider.dart';
 
-final class HomeScreen extends StatelessWidget {
+final class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
+
+  @override
+  State<HomeScreen> createState() => _HomeScreenState();
+}
+
+final class _HomeScreenState extends State<HomeScreen> {
+  String _query = '';
+
+  void _onQueryChanged(String value) {
+    setState(() => _query = value.trim().toLowerCase());
+  }
 
   @override
   Widget build(BuildContext context) {
     final state = context.watch<CatalogProvider>().state;
     return Scaffold(
       body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  const Text('Hola 👋', style: TextStyle(fontSize: 22, fontWeight: FontWeight.w700, color: AppColors.textPrimary)),
-                  IconButton(
-                    onPressed: () {},
-                    icon: const Icon(Icons.add),
-                    style: IconButton.styleFrom(
-                      backgroundColor: AppColors.accent,
-                      foregroundColor: AppColors.surface,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 8),
-              const Align(
-                alignment: Alignment.centerLeft,
-                child: Text('Mis Catálogos', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: AppColors.textPrimary)),
-              ),
-              const SizedBox(height: 12),
-              Expanded(
-                child: switch (state) {
-                  CatalogLoadingState() => const LoadingCatalogView(),
-                  CatalogLoadedState() when state.isEmpty => const EmptyCatalogView(),
-                  CatalogLoadedState() => const SizedBox.shrink(),
-                  CatalogFailureState() => const EmptyCatalogView(),
-                },
-              ),
-            ],
-          ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            const _Header(),
+            Expanded(
+              child: switch (state) {
+                CatalogLoadingState() => const LoadingCatalogView(),
+                CatalogLoadedState() when state.isEmpty => const EmptyCatalogView(),
+                CatalogLoadedState() => _CatalogContent(state: state, query: _query, onQueryChanged: _onQueryChanged),
+                CatalogFailureState() => const EmptyCatalogView(),
+              },
+            ),
+          ],
         ),
       ),
+      bottomNavigationBar: const _HomeNavBar(),
+    );
+  }
+}
+
+final class _Header extends StatelessWidget {
+  const _Header();
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          const Text('Hola 👋', style: TextStyle(fontSize: 22, fontWeight: FontWeight.w700, color: AppColors.textPrimary)),
+          IconButton.filled(
+            onPressed: () {},
+            icon: const Icon(Icons.add),
+            style: IconButton.styleFrom(
+              backgroundColor: AppColors.accent,
+              foregroundColor: AppColors.surface,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+final class _CatalogContent extends StatelessWidget {
+  const _CatalogContent({required this.state, required this.query, required this.onQueryChanged});
+
+  final CatalogLoadedState state;
+  final String query;
+  final ValueChanged<String> onQueryChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    if (query.isEmpty) {
+      return _CatalogColumn(
+        children: [_SearchField(onQueryChanged), const _SectionRow(), _CategoryList(state: state)],
+      );
+    }
+    final results = state.categories.where((c) => c.name.toLowerCase().contains(query)).toList();
+    if (results.isEmpty) {
+      return _CatalogColumn(
+        children: [
+          _SearchField(onQueryChanged),
+          Expanded(
+            child: Center(
+              child: Text(
+                'Sin resultados para "$query"',
+                textAlign: TextAlign.center,
+                style: const TextStyle(fontSize: 14, color: AppColors.textSecondary),
+              ),
+            ),
+          ),
+        ],
+      );
+    }
+    return _CatalogColumn(
+      children: [_SearchField(onQueryChanged), const _SectionRow(), _CategoryList(state: state, categories: results)],
+    );
+  }
+}
+
+final class _CatalogColumn extends StatelessWidget {
+  const _CatalogColumn({required this.children});
+
+  final List<Widget> children;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: children,
+    );
+  }
+}
+
+final class _SearchField extends StatelessWidget {
+  const _SearchField(this.onQueryChanged);
+
+  final ValueChanged<String> onQueryChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
+      child: TextField(
+        onChanged: onQueryChanged,
+        decoration: const InputDecoration(
+          hintText: 'Buscar pictogramas...',
+          prefixIcon: Icon(Icons.search, color: AppColors.textMuted),
+        ),
+      ),
+    );
+  }
+}
+
+final class _SectionRow extends StatelessWidget {
+  const _SectionRow();
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 16, 8, 0),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          const Text('Mis Catálogos', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: AppColors.textPrimary)),
+          TextButton(
+            onPressed: () {},
+            style: TextButton.styleFrom(textStyle: const TextStyle(fontSize: 13)),
+            child: const Text('Ver todos'),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+final class _CategoryList extends StatelessWidget {
+  const _CategoryList({required this.state, this.categories});
+
+  final CatalogLoadedState state;
+  final List<Category>? categories;
+
+  @override
+  Widget build(BuildContext context) {
+    final items = categories ?? state.categories;
+    return Expanded(
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          const cardWidth = 340.0;
+          final columns = (constraints.maxWidth / cardWidth).floor().clamp(1, 3);
+          if (columns == 1) {
+            return ListView.builder(
+              padding: const EdgeInsets.fromLTRB(20, 12, 20, 16),
+              itemCount: items.length,
+              itemBuilder: (context, index) {
+                return _CategoryCard(category: items[index], pictoCount: state.pictoCountOf(items[index].id));
+              },
+            );
+          }
+          return GridView.builder(
+            padding: const EdgeInsets.fromLTRB(20, 12, 20, 16),
+            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: columns, mainAxisSpacing: 12, crossAxisSpacing: 12, childAspectRatio: 340 / 95),
+            itemCount: items.length,
+            itemBuilder: (context, index) {
+              return _CategoryCard(category: items[index], pictoCount: state.pictoCountOf(items[index].id));
+            },
+          );
+        },
+      ),
+    );
+  }
+}
+
+final class _CategoryCard extends StatelessWidget {
+  const _CategoryCard({required this.category, required this.pictoCount});
+
+  final Category category;
+  final int pictoCount;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(color: AppColors.surface, borderRadius: BorderRadius.circular(16)),
+      child: Row(
+        children: [
+          Container(
+            width: 48,
+            height: 48,
+            decoration: BoxDecoration(color: AppColors.accentLight, borderRadius: BorderRadius.circular(12)),
+            child: Icon(_categoryIcon(category.name), color: AppColors.accent, size: 24),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(category.name, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: AppColors.textPrimary)),
+                const SizedBox(height: 2),
+                Text(pictoCount == 1 ? '1 pictograma' : '$pictoCount pictogramas', style: const TextStyle(fontSize: 12, color: AppColors.textSecondary)),
+              ],
+            ),
+          ),
+          const Icon(Icons.chevron_right, color: AppColors.textMuted),
+        ],
+      ),
+    );
+  }
+
+  static final Map<String, IconData> _iconsByName = <String, IconData>{
+    'alimentos': Icons.restaurant,
+    'emociones': Icons.sentiment_satisfied,
+    'juguetes': Icons.toys,
+    'escuela': Icons.school,
+  };
+
+  static IconData _categoryIcon(String name) {
+    return _iconsByName[name.toLowerCase()] ?? Icons.category;
+  }
+}
+
+final class _HomeNavBar extends StatelessWidget {
+  const _HomeNavBar();
+
+  static const List<(IconData icon, IconData selectedIcon, String label)> _destinations = [
+    (Icons.home_outlined, Icons.home, 'Inicio'),
+    (Icons.image_outlined, Icons.image, 'Pictogramas'),
+    (Icons.chat_bubble_outline, Icons.chat_bubble, 'Comunicar'),
+    (Icons.person_outline, Icons.person, 'Perfil'),
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    return NavigationBar(
+      selectedIndex: 0,
+      onDestinationSelected: (_) {},
+      backgroundColor: AppColors.surface,
+      indicatorColor: AppColors.accentLight,
+      destinations: [
+        for (final (icon, selectedIcon, label) in _destinations)
+          NavigationDestination(
+            icon: Icon(icon, color: AppColors.textSecondary),
+            selectedIcon: Icon(selectedIcon, color: AppColors.accent),
+            label: label,
+          ),
+      ],
     );
   }
 }
