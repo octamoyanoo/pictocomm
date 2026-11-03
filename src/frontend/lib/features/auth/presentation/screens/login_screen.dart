@@ -1,4 +1,3 @@
-import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 
 import '../../../../core/constants/app_routes.dart';
@@ -166,24 +165,25 @@ final class _RegisterLink extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Text.rich(
-      TextSpan(
-        text: '¿No tienes cuenta? ',
-        style: const TextStyle(fontSize: 14, color: AppColors.textSecondary),
-        children: [
-          TextSpan(
-            text: 'Regístrate aquí',
-            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.accent),
-            recognizer: TapGestureRecognizer()
-              ..onTap = () {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Registro: pantalla próxima (Crear Cuenta)')),
-                );
-              },
-          ),
-        ],
+    return GestureDetector(
+      onTap: () {
+        Navigator.of(context).pushNamed(AppRoutes.signup);
+      },
+      behavior: HitTestBehavior.opaque,
+      child: Text.rich(
+        TextSpan(
+          text: '¿No tienes cuenta? ',
+          style: const TextStyle(fontSize: 14, color: AppColors.textSecondary),
+          children: [
+            const TextSpan(
+              text: 'Regístrate aquí',
+              style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.accent),
+            ),
+          ],
+        ),
+        textAlign: TextAlign.center,
+        key: const Key('login_register_link'),
       ),
-      textAlign: TextAlign.center,
     );
   }
 }

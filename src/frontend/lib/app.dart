@@ -5,6 +5,7 @@ import 'core/constants/app_routes.dart';
 import 'core/di/injector.dart';
 import 'core/theme/app_theme.dart';
 import 'features/auth/presentation/screens/login_screen.dart';
+import 'features/auth/presentation/screens/sign_up_screen.dart';
 import 'features/catalog/presentation/providers/catalog_provider.dart';
 import 'features/catalog/presentation/screens/home_screen.dart';
 
@@ -17,6 +18,8 @@ final class AppRouter {
     switch (settings.name) {
       case AppRoutes.login:
         return MaterialPageRoute<void>(builder: (_) => const LoginScreen());
+      case AppRoutes.signup:
+        return MaterialPageRoute<void>(builder: (_) => const SignUpScreen());
       case AppRoutes.home:
         return MaterialPageRoute<void>(
           builder: (_) => ChangeNotifierProvider<CatalogProvider>(

@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:pictocomm/app.dart';
 import 'package:pictocomm/features/catalog/presentation/widgets/empty_catalog_view.dart';
@@ -29,5 +29,44 @@ void main() {
 
     expect(find.byType(EmptyCatalogView), findsOneWidget);
     expect(find.text('Aún no hay pictogramas'), findsOneWidget);
+  });
+
+  testWidgets('signup rechaza contrasenas distintas', (tester) async {
+    await tester.binding.setSurfaceSize(const Size(800, 1200));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    await tester.pumpWidget(PictoCommApp(dependencies: fakeDependencies()));
+
+    await tester.tap(find.byKey(const Key('login_register_link')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Crear Cuenta'), findsOneWidget);
+
+    await tester.enterText(find.byKey(const Key('signup_name')), 'Nico');
+    await tester.enterText(find.byKey(const Key('signup_email')), 'casa@pictocomm.app');
+    await tester.enterText(find.byKey(const Key('signup_password')), 'secreta123');
+    await tester.enterText(find.byKey(const Key('signup_confirm_password')), 'otraclave99');
+    await tester.tap(find.text('Crear Cuenta'));
+    await tester.pump();
+
+    expect(find.text('Las contraseñas no coinciden'), findsOneWidget);
+    expect(find.text('Crear Cuenta'), findsOneWidget);
+  });
+
+  testWidgets('signup con datos validos navega a home', (tester) async {
+    await tester.binding.setSurfaceSize(const Size(800, 1200));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    await tester.pumpWidget(PictoCommApp(dependencies: fakeDependencies()));
+
+    await tester.tap(find.byKey(const Key('login_register_link')));
+    await tester.pumpAndSettle();
+
+    await tester.enterText(find.byKey(const Key('signup_name')), 'Nico');
+    await tester.enterText(find.byKey(const Key('signup_email')), 'casa@pictocomm.app');
+    await tester.enterText(find.byKey(const Key('signup_password')), 'secreta123');
+    await tester.enterText(find.byKey(const Key('signup_confirm_password')), 'secreta123');
+    await tester.tap(find.text('Crear Cuenta'));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(EmptyCatalogView), findsOneWidget);
   });
 }
