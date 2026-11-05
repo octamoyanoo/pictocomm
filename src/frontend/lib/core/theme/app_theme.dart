@@ -12,6 +12,19 @@ class AppColors {
   static const Color success = Color(0xFF4CAF50);
   static const Color warning = Color(0xFFFF9800);
   static const Color error = Color(0xFFF44336);
+
+  /// Paleta de avatares de perfiles de niño (RF2.6): tonos cálidos y
+  /// claramente distinguibles entre sí.
+  static const List<Color> avatarPalette = [
+    accent,
+    Color(0xFF4CAF50),
+    Color(0xFFFF9800),
+    Color(0xFF3F7FBF),
+    Color(0xFFE57373),
+    Color(0xFF26A69A),
+    Color(0xFFF06292),
+    Color(0xFF7E57C2),
+  ];
 }
 
 class AppTheme {

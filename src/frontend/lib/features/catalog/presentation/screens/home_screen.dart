@@ -4,6 +4,9 @@ import 'package:provider/provider.dart';
 import '../../../../core/constants/app_routes.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/widgets/app_bottom_nav.dart';
+import '../../../profiles/presentation/providers/session_provider.dart';
+import '../../../profiles/presentation/widgets/child_avatar.dart';
+import '../../../profiles/domain/entities/child_profile.dart';
 import '../../domain/entities/category.dart';
 import '../providers/catalog_provider.dart';
 import '../widgets/empty_catalog_view.dart';
@@ -64,12 +67,13 @@ final class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     final state = context.watch<CatalogProvider>().state;
+    final activeChild = context.watch<SessionProvider>().activeChild;
     return Scaffold(
       body: SafeArea(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            _Header(onAddTapped: _openAddMenu),
+            _Header(activeChild: activeChild, onAddTapped: _openAddMenu),
             Expanded(
               child: switch (state) {
                 CatalogLoadingState() => const LoadingCatalogView(),
@@ -87,26 +91,53 @@ final class _HomeScreenState extends State<HomeScreen> {
 }
 
 final class _Header extends StatelessWidget {
-  const _Header({required this.onAddTapped});
+  const _Header({required this.activeChild, required this.onAddTapped});
 
+  final ChildProfile? activeChild;
   final VoidCallback onAddTapped;
 
   @override
   Widget build(BuildContext context) {
+    final child = activeChild;
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          const Text('Hola 👋', style: TextStyle(fontSize: 22, fontWeight: FontWeight.w700, color: AppColors.textPrimary)),
-          IconButton.filled(
-            onPressed: onAddTapped,
-            icon: const Icon(Icons.add),
-            tooltip: 'Agregar catálogo o pictograma',
-            style: IconButton.styleFrom(
-              backgroundColor: AppColors.accent,
-              foregroundColor: AppColors.surface,
+          // Saludo ligado a la sesión activa (RF2.2). Sin chico elegido,
+          // el saludo genérico de las primeras corridas.
+          if (child == null)
+            const Text('Hola 👋', style: TextStyle(fontSize: 22, fontWeight: FontWeight.w700, color: AppColors.textPrimary))
+          else
+            Row(
+              children: [
+                ChildAvatar(child: child, radius: 16),
+                const SizedBox(width: 10),
+                Text(
+                  'Hola, ${child.name} 👋',
+                  style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w700, color: AppColors.textPrimary),
+                ),
+              ],
             ),
+          Row(
+            children: [
+              // Salida simple y visible al selector (RF2.3, decisión del usuario).
+              IconButton.filledTonal(
+                onPressed: () => Navigator.of(context).pushReplacementNamed(AppRoutes.childSelector),
+                icon: const Icon(Icons.swap_horiz),
+                tooltip: 'Cambiar de niño',
+              ),
+              const SizedBox(width: 8),
+              IconButton.filled(
+                onPressed: onAddTapped,
+                icon: const Icon(Icons.add),
+                tooltip: 'Agregar catálogo o pictograma',
+                style: IconButton.styleFrom(
+                  backgroundColor: AppColors.accent,
+                  foregroundColor: AppColors.surface,
+                ),
+              ),
+            ],
           ),
         ],
       ),

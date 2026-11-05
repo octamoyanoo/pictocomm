@@ -32,6 +32,7 @@ final class AppBottomNav extends StatelessWidget {
       destinations: [
         for (final (icon, selectedIcon, label, _) in destinations)
           NavigationDestination(
+            key: Key('bottom_nav_${label.toLowerCase()}'),
             icon: Icon(icon, color: AppColors.textSecondary),
             selectedIcon: Icon(selectedIcon, color: AppColors.accent),
             label: label,

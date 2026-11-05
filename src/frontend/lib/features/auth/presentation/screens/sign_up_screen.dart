@@ -45,7 +45,7 @@ final class _SignUpScreenState extends State<SignUpScreen> {
     if (!(_formKey.currentState?.validate() ?? false)) {
       return;
     }
-    Navigator.of(context).pushNamedAndRemoveUntil(AppRoutes.home, (route) => false);
+    Navigator.of(context).pushNamedAndRemoveUntil(AppRoutes.childSelector, (route) => false);
   }
 
   @override

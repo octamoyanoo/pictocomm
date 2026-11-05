@@ -17,6 +17,9 @@ import 'features/catalog/presentation/screens/comunicar_screen.dart';
 import 'features/catalog/presentation/screens/home_screen.dart';
 import 'features/catalog/presentation/screens/picto_detail_screen.dart';
 import 'features/catalog/presentation/screens/pictogramas_screen.dart';
+import 'features/profiles/presentation/providers/children_provider.dart';
+import 'features/profiles/presentation/providers/session_provider.dart';
+import 'features/profiles/presentation/screens/child_selector_screen.dart';
 import 'features/profiles/presentation/screens/profile_screen.dart';
 import 'features/voice/domain/voice_provider.dart';
 
@@ -35,12 +38,21 @@ final class AppRouter {
     );
   }
 
+  ChangeNotifierProvider<ChildrenProvider> _childrenRoute(Widget screen) {
+    return ChangeNotifierProvider<ChildrenProvider>(
+      create: (_) => ChildrenProvider(childProfileRepository: _dependencies.childProfileRepository)..load(),
+      child: screen,
+    );
+  }
+
   Route<dynamic>? onGenerateRoute(RouteSettings settings) {
     switch (settings.name) {
       case AppRoutes.login:
         return MaterialPageRoute<void>(builder: (_) => const LoginScreen());
       case AppRoutes.signup:
         return MaterialPageRoute<void>(builder: (_) => const SignUpScreen());
+      case AppRoutes.childSelector:
+        return MaterialPageRoute<void>(builder: (_) => _childrenRoute(const ChildSelectorScreen()));
       case AppRoutes.home:
         return MaterialPageRoute<void>(
           builder: (_) => ChangeNotifierProvider<CatalogProvider>(
@@ -61,7 +73,7 @@ final class AppRouter {
           ),
         );
       case AppRoutes.perfil:
-        return MaterialPageRoute<void>(builder: (_) => const ProfileScreen());
+        return MaterialPageRoute<void>(builder: (_) => _childrenRoute(const ProfileScreen()));
       case AppRoutes.category:
         final argument = settings.arguments;
         if (argument is! Category) {
@@ -121,12 +133,17 @@ final class PictoCommApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final appRouter = AppRouter(dependencies);
-    return MaterialApp(
-      title: 'PictoComm',
-      debugShowCheckedModeBanner: false,
-      theme: AppTheme.light(),
-      initialRoute: AppRoutes.login,
-      onGenerateRoute: appRouter.onGenerateRoute,
+    // Sesión activa (RF2.2): el chico elegido sobrevive la navegación entre
+    // pestallas porque vive por encima del MaterialApp, no en cada ruta.
+    return ChangeNotifierProvider<SessionProvider>(
+      create: (_) => SessionProvider(),
+      child: MaterialApp(
+        title: 'PictoComm',
+        debugShowCheckedModeBanner: false,
+        theme: AppTheme.light(),
+        initialRoute: AppRoutes.login,
+        onGenerateRoute: appRouter.onGenerateRoute,
+      ),
     );
   }
 }

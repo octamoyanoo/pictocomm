@@ -1,4 +1,5 @@
 import 'package:pictocomm/core/di/injector.dart';
+import 'package:pictocomm/core/theme/app_theme.dart';
 import 'package:pictocomm/core/error/app_exception.dart';
 import 'package:pictocomm/features/catalog/data/datasources/remote_catalog_data_source.dart';import 'package:pictocomm/features/catalog/data/models/category_model.dart';
 import 'package:pictocomm/features/catalog/data/models/picto_model.dart';
@@ -6,6 +7,8 @@ import 'package:pictocomm/features/catalog/domain/entities/category.dart';
 import 'package:pictocomm/features/catalog/domain/entities/picto.dart';
 import 'package:pictocomm/features/catalog/domain/repositories/category_repository.dart';
 import 'package:pictocomm/features/catalog/domain/repositories/picto_repository.dart';
+import 'package:pictocomm/features/profiles/domain/entities/child_profile.dart';
+import 'package:pictocomm/features/profiles/domain/repositories/child_profile_repository.dart';
 import 'package:pictocomm/features/voice/domain/voice_provider.dart';
 
 final class FakeCategoryRepository implements CategoryRepository {
@@ -138,10 +141,55 @@ final class FakeVoiceProvider implements VoiceProvider {
   Future<void> dispose() async {}
 }
 
-AppDependencies fakeDependencies({List<Category> categories = const <Category>[], List<Picto> pictos = const <Picto>[]}) {
+final class FakeChildProfileRepository implements ChildProfileRepository {
+  FakeChildProfileRepository({List<ChildProfile> children = const <ChildProfile>[]}) : _children = [...children];
+
+  final List<ChildProfile> _children;
+
+  List<ChildProfile> get children => List.unmodifiable(_children);
+
+  @override
+  Future<List<ChildProfile>> getChildren() async => _children;
+
+  @override
+  Future<ChildProfile> createChild(ChildProfile child) async {
+    final name = child.name.trim();
+    if (name.isEmpty) {
+      throw const DataSourceException('El nombre del niño no puede estar vacío');
+    }
+    final persisted = ChildProfile(
+      id: 'child-${DateTime.now().microsecondsSinceEpoch}',
+      name: name,
+      age: child.age,
+      avatarColor: child.avatarColor,
+    );
+    _children.add(persisted);
+    return persisted;
+  }
+
+  @override
+  Future<void> deleteChild(String id) async {
+    _children.removeWhere((child) => child.id == id);
+  }
+}
+
+/// Perfil de chico de prueba: los tests de flujo entran a sesión a traves del
+/// selector (RF2.1) tocando su tarjeta.
+ChildProfile testChildProfile() => ChildProfile(
+  id: 'test-nina',
+  name: 'Nina',
+  avatarColor: AppColors.avatarPalette.first,
+);
+
+AppDependencies fakeDependencies({
+  List<Category> categories = const <Category>[],
+  List<Picto> pictos = const <Picto>[],
+  List<ChildProfile> children = const <ChildProfile>[],
+}) {
   return AppDependencies(
     categoryRepository: FakeCategoryRepository(categories: categories),
     pictoRepository: FakePictoRepository(pictos: pictos),
+    childProfileRepository: FakeChildProfileRepository(children: children),
     voiceProvider: FakeVoiceProvider(),
   );
 }

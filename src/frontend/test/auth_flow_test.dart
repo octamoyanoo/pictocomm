@@ -19,7 +19,7 @@ void main() {
     expect(find.text('PictoComm'), findsOneWidget);
   });
 
-  testWidgets('login con datos validos navega a home con catalogo vacio', (tester) async {
+  testWidgets('login con datos validos navega al selector de chico', (tester) async {
     await tester.pumpWidget(PictoCommApp(dependencies: fakeDependencies()));
 
     await tester.enterText(find.byKey(const Key('login_email')), 'casa@pictocomm.app');
@@ -27,8 +27,30 @@ void main() {
     await tester.tap(find.text('Iniciar Sesión'));
     await tester.pumpAndSettle();
 
+    // RF2: la sesión de comunicación arranca eligiendo chico, no en home.
+    expect(find.text('¿Quién se comunica hoy?'), findsOneWidget);
+    expect(find.text('Todavía no hay perfiles de niño'), findsOneWidget);
+  });
+
+  testWidgets('elegir perfil en selector entra a la sesion del chico', (tester) async {
+    await tester.pumpWidget(
+      PictoCommApp(
+        dependencies: fakeDependencies(
+          children: [testChildProfile()],
+        ),
+      ),
+    );
+
+    await tester.enterText(find.byKey(const Key('login_email')), 'casa@pictocomm.app');
+    await tester.enterText(find.byKey(const Key('login_password')), 'secreta123');
+    await tester.tap(find.text('Iniciar Sesión'));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Nina'));
+    await tester.pumpAndSettle();
+
     expect(find.byType(EmptyCatalogView), findsOneWidget);
-    expect(find.text('Aún no hay pictogramas'), findsOneWidget);
+    expect(find.text('Hola, Nina 👋'), findsOneWidget);
   });
 
   testWidgets('signup rechaza contrasenas distintas', (tester) async {
@@ -52,7 +74,7 @@ void main() {
     expect(find.text('Crear Cuenta'), findsOneWidget);
   });
 
-  testWidgets('signup con datos validos navega a home', (tester) async {
+  testWidgets('signup con datos validos navega al selector de chico', (tester) async {
     await tester.binding.setSurfaceSize(const Size(800, 1200));
     addTearDown(() => tester.binding.setSurfaceSize(null));
     await tester.pumpWidget(PictoCommApp(dependencies: fakeDependencies()));
@@ -67,6 +89,7 @@ void main() {
     await tester.tap(find.text('Crear Cuenta'));
     await tester.pumpAndSettle();
 
-    expect(find.byType(EmptyCatalogView), findsOneWidget);
+    expect(find.text('¿Quién se comunica hoy?'), findsOneWidget);
+    expect(find.text('Todavía no hay perfiles de niño'), findsOneWidget);
   });
 }

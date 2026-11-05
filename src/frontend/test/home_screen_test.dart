@@ -4,6 +4,7 @@ import 'package:pictocomm/app.dart';
 import 'package:pictocomm/features/catalog/domain/entities/category.dart';
 import 'package:pictocomm/features/catalog/domain/entities/picto.dart';
 import 'package:pictocomm/features/catalog/presentation/widgets/empty_catalog_view.dart';
+import 'package:pictocomm/features/profiles/presentation/widgets/child_avatar.dart';
 
 import 'helpers/fakes.dart';
 
@@ -24,6 +25,9 @@ Future<void> _goToHome(WidgetTester tester, PictoCommApp app) async {
   await tester.enterText(find.byKey(const Key('login_password')), 'secreta123');
   await tester.tap(find.text('Iniciar Sesión'));
   await tester.pumpAndSettle();
+  // RF2: tras el login, el selector de chico ('¿Quién se comunica hoy?').
+  await tester.tap(find.text('Nina'));
+  await tester.pumpAndSettle();
 }
 
 void main() {
@@ -32,6 +36,7 @@ void main() {
       tester,
       PictoCommApp(
         dependencies: fakeDependencies(
+          children: [testChildProfile()],
           categories: [
             _category('alimentos', 'Alimentos'),
             _category('emociones', 'Emociones'),
@@ -46,7 +51,8 @@ void main() {
       ),
     );
 
-    expect(find.text('Hola 👋'), findsOneWidget);
+    expect(find.text('Hola, Nina 👋'), findsOneWidget);
+    expect(find.byType(ChildAvatar), findsOneWidget);
     expect(find.byIcon(Icons.search), findsOneWidget);
     expect(find.text('Mis Catálogos'), findsOneWidget);
     expect(find.text('Ver todos'), findsOneWidget);
@@ -58,6 +64,7 @@ void main() {
       tester,
       PictoCommApp(
         dependencies: fakeDependencies(
+          children: [testChildProfile()],
           categories: [
             _category('alimentos', 'Alimentos'),
             _category('emociones', 'Emociones'),
@@ -82,6 +89,7 @@ void main() {
       tester,
       PictoCommApp(
         dependencies: fakeDependencies(
+          children: [testChildProfile()],
           categories: [_category('alimentos', 'Alimentos'), _category('emociones', 'Emociones')],
           pictos: [_picto('alimentos-1', 'alimentos', 'Manzana')],
         ),
@@ -101,7 +109,7 @@ void main() {
   });
 
   testWidgets('home sin categorias muestra estado vacio', (tester) async {
-    await _goToHome(tester, PictoCommApp(dependencies: fakeDependencies()));
+    await _goToHome(tester, PictoCommApp(dependencies: fakeDependencies(children: [testChildProfile()])));
 
     expect(find.byType(EmptyCatalogView), findsOneWidget);
     expect(find.text('Aún no hay pictogramas'), findsOneWidget);

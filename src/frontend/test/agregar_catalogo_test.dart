@@ -5,10 +5,13 @@ import 'package:pictocomm/app.dart';
 import 'helpers/fakes.dart';
 
 Future<void> _goToHome(WidgetTester tester) async {
-  await tester.pumpWidget(PictoCommApp(dependencies: fakeDependencies()));
+  await tester.pumpWidget(PictoCommApp(dependencies: fakeDependencies(children: [testChildProfile()])));
   await tester.enterText(find.byKey(const Key('login_email')), 'casa@pictocomm.app');
   await tester.enterText(find.byKey(const Key('login_password')), 'secreta123');
   await tester.tap(find.text('Iniciar Sesión'));
+  await tester.pumpAndSettle();
+  // RF2: login lleva al selector de chico; tap en el chico prueba del flujo.
+  await tester.tap(find.text('Nina'));
   await tester.pumpAndSettle();
 }
 
