@@ -3,8 +3,10 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../../../../core/error/app_exception.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/widgets/app_bottom_nav.dart';
+import '../../../voice/domain/voice_provider.dart';
 import '../../domain/entities/category.dart';
 import '../../domain/entities/picto.dart';
 import '../providers/pictos_provider.dart';
@@ -44,7 +46,10 @@ final class _ComunicarScreenState extends State<ComunicarScreen> {
     showDialog<void>(
       context: context,
       barrierColor: Colors.black87,
-      builder: (_) => _PlaySequenceDialog(pictos: List.of(_sentence)),
+      builder: (_) => _PlaySequenceDialog(
+        pictos: List.of(_sentence),
+        voiceProvider: context.read<VoiceProvider>(),
+      ),
     );
   }
 
@@ -173,7 +178,7 @@ final class _SentenceStrip extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
       child: Container(
-        height: 108,
+        height: 160,
         padding: const EdgeInsets.fromLTRB(8, 8, 8, 8),
         decoration: BoxDecoration(color: AppColors.accentLight, borderRadius: BorderRadius.circular(16)),
         child: Column(
@@ -249,38 +254,34 @@ final class _SentenceChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Stack(
+    return Column(
       children: [
-        Padding(
-          padding: const EdgeInsets.only(right: 6),
-          child: Container(
-            width: 76,
-            padding: const EdgeInsets.all(6),
-            decoration: BoxDecoration(color: AppColors.surface, borderRadius: BorderRadius.circular(12)),
-            child: Column(
-              children: [
-                Expanded(child: PictoImage(picto: picto)),
-                Text(
-                  picto.label,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600),
-                ),
-              ],
-            ),
+        Container(
+          width: 76,
+          padding: const EdgeInsets.all(6),
+          decoration: BoxDecoration(color: AppColors.surface, borderRadius: BorderRadius.circular(12)),
+          child: Column(
+            children: [
+              SizedBox(
+                height: 40,
+                child: PictoImage(picto: picto),
+              ),
+              Text(
+                picto.label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600),
+              ),
+            ],
           ),
         ),
-        Positioned(
-          top: 0,
-          right: 0,
-          child: GestureDetector(
-            onTap: onRemove,
-            child: Container(
-              width: 20,
-              height: 20,
-              decoration: const BoxDecoration(color: AppColors.error, shape: BoxShape.circle),
-              child: const Icon(Icons.close, color: AppColors.surface, size: 14),
-            ),
+        // Mini-basura de cada picto (RF1.9): quitar uno por uno sin borrar
+        // el resto de la frase.
+        GestureDetector(
+          onTap: onRemove,
+          child: Padding(
+            padding: const EdgeInsets.only(top: 2),
+            child: const Icon(Icons.delete_outline, size: 18, color: AppColors.error),
           ),
         ),
       ],
@@ -354,50 +355,166 @@ final class EmptyCategoryHint extends StatelessWidget {
   }
 }
 
+/// Reproduce la frase palabra por palabra (RF1.5–1.7): avanza al siguiente
+/// picto recién cuando el TTS terminó de sonar la palabra actual, y resalta
+/// el picto activo mientras suena (señal imagen-palabra para el niño).
+///
+/// Cerrar el diálogo detiene la voz de inmediato (RF1: nunca deja la voz
+/// sonando fuera de control).
 final class _PlaySequenceDialog extends StatefulWidget {
-  const _PlaySequenceDialog({required this.pictos});
+  const _PlaySequenceDialog({required this.pictos, required this.voiceProvider});
 
   final List<Picto> pictos;
+  final VoiceProvider voiceProvider;
 
   @override
   State<_PlaySequenceDialog> createState() => _PlaySequenceDialogState();
 }
 
 final class _PlaySequenceDialogState extends State<_PlaySequenceDialog> {
-  static const _stepDuration = Duration(seconds: 2);
+  static const double _chipExtent = 92.0;
 
-  Timer? _timer;
   int _index = 0;
+  bool _voiceFailed = false;
+  bool _cancelled = false;
+  late final ScrollController _scrollController = ScrollController();
 
   @override
   void initState() {
     super.initState();
-    _timer = Timer.periodic(_stepDuration, (_) {
-      if (_index < widget.pictos.length - 1) {
-        setState(() => _index += 1);
+    unawaited(_play());
+  }
+
+  Future<void> _play() async {
+    for (var i = 0; i < widget.pictos.length; i++) {
+      if (_cancelled || !mounted) {
+        return;
       }
-    });
+      setState(() => _index = i);
+      _scrollTo(i);
+      try {
+        // Timeout de seguridad: si el engine de voz no dispara fin de locución
+        // (falla silenciosa del sistema), la frase sigue avanzando igual.
+        await widget.voiceProvider.speak(widget.pictos[i].label).timeout(const Duration(seconds: 6));
+      } on VoiceException {
+        if (mounted) {
+          setState(() => _voiceFailed = true);
+        }
+      } on TimeoutException {
+        if (mounted) {
+          setState(() => _voiceFailed = true);
+        }
+      }
+    }
+  }
+
+  void _scrollTo(int index) {
+    if (!_scrollController.hasClients) {
+      return;
+    }
+    final maxScroll = _scrollController.position.maxScrollExtent;
+    final target = (index * _chipExtent).clamp(0.0, maxScroll);
+    unawaited(_scrollController.animateTo(
+      target,
+      duration: const Duration(milliseconds: 200),
+      curve: Curves.easeOut,
+    ));
   }
 
   @override
   void dispose() {
-    _timer?.cancel();
+    // Garantía RF1: la voz nunca queda activa fuera del Play (se cierra por
+    // botón X, por toque fuera del diálogo o por el sistema).
+    unawaited(widget.voiceProvider.stop());
+    _cancelled = true;
+    _scrollController.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     final picto = widget.pictos[_index];
-    return Center(
+    return Dialog(
+      backgroundColor: Colors.transparent,
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
           SizedBox(
-            width: 320,
+            width: 340,
             child: PictoImage(picto: picto, fit: BoxFit.contain),
           ),
-          Text(picto.label, style: const TextStyle(fontSize: 40, color: Colors.white, fontWeight: FontWeight.w700)),
+          const SizedBox(height: 8),
+          Text(
+            picto.label,
+            style: const TextStyle(fontSize: 40, color: Colors.white, fontWeight: FontWeight.w700),
+          ),
+          if (_voiceFailed) ...[
+            const SizedBox(height: 8),
+            const Text(
+              'Voz no disponible en este dispositivo',
+              style: TextStyle(fontSize: 13, color: Colors.white70),
+            ),
+          ],
+          const SizedBox(height: 16),
+          // Tira de frase con destaque karaoke (pregunta abierta #1 de RF1).
+          SizedBox(
+            height: 96,
+            child: ListView.separated(
+              scrollDirection: Axis.horizontal,
+              itemCount: widget.pictos.length,
+              controller: _scrollController,
+              separatorBuilder: (_, index) => const SizedBox(width: 8),
+              itemBuilder: (context, index) {
+                final active = index == _index;
+                return _PlayChip(picto: widget.pictos[index], active: active);
+              },
+            ),
+          ),
+          IconButton(
+            onPressed: () => Navigator.of(context).pop(),
+            icon: const Icon(Icons.close, size: 28),
+            tooltip: 'Cerrar',
+            color: Colors.white,
+          ),
         ],
+      ),
+    );
+  }
+}
+
+final class _PlayChip extends StatelessWidget {
+  const _PlayChip({required this.picto, required this.active});
+
+  final Picto picto;
+  final bool active;
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedScale(
+      scale: active ? 1.12 : 1.0,
+      duration: const Duration(milliseconds: 150),
+      child: Container(
+        width: 84,
+        padding: const EdgeInsets.all(6),
+        decoration: BoxDecoration(
+          color: Colors.white.withValues(alpha: active ? 1.0 : 0.75),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: active ? AppColors.accent : Colors.white38,
+            width: active ? 3 : 1,
+          ),
+        ),
+        child: Column(
+          children: [
+            Expanded(child: PictoImage(picto: picto)),
+            Text(
+              picto.label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600),
+            ),
+          ],
+        ),
       ),
     );
   }

@@ -6,6 +6,7 @@ import 'package:pictocomm/features/catalog/domain/entities/category.dart';
 import 'package:pictocomm/features/catalog/domain/entities/picto.dart';
 import 'package:pictocomm/features/catalog/domain/repositories/category_repository.dart';
 import 'package:pictocomm/features/catalog/domain/repositories/picto_repository.dart';
+import 'package:pictocomm/features/voice/domain/voice_provider.dart';
 
 final class FakeCategoryRepository implements CategoryRepository {
   FakeCategoryRepository({List<Category> categories = const <Category>[]}) : _categories = [...categories];
@@ -104,9 +105,43 @@ final class ExplodingRemoteDataSource implements RemoteCatalogDataSource {
   }
 }
 
+/// Voz "en silencio" para tests: respeta el contrato (speak completa solo
+/// cuando la palabra "terminó de sonar") pero no pronuncia nada. Registra
+/// lo pedido para que los tests puedan verificar qué se quiso reproducir.
+final class FakeVoiceProvider implements VoiceProvider {
+  FakeVoiceProvider({List<String> words = const <String>[]}) : _words = [...words];
+
+  final List<String> _words;
+
+  /// Palabras pedidas a `speak`, en orden.
+  List<String> get spokenWords => List.unmodifiable(_words);
+
+  bool _stopped = false;
+
+  /// `true` si se llamó `stop` al menos una vez.
+  bool get isStopped => _stopped;
+
+  @override
+  Future<void> speak(String word) async {
+    if (word.trim().isEmpty) {
+      throw const VoiceException('No se puede pronunciar un texto vacío');
+    }
+    _words.add(word);
+  }
+
+  @override
+  Future<void> stop() async {
+    _stopped = true;
+  }
+
+  @override
+  Future<void> dispose() async {}
+}
+
 AppDependencies fakeDependencies({List<Category> categories = const <Category>[], List<Picto> pictos = const <Picto>[]}) {
   return AppDependencies(
     categoryRepository: FakeCategoryRepository(categories: categories),
     pictoRepository: FakePictoRepository(pictos: pictos),
+    voiceProvider: FakeVoiceProvider(),
   );
 }

@@ -18,6 +18,7 @@ import 'features/catalog/presentation/screens/home_screen.dart';
 import 'features/catalog/presentation/screens/picto_detail_screen.dart';
 import 'features/catalog/presentation/screens/pictogramas_screen.dart';
 import 'features/profiles/presentation/screens/profile_screen.dart';
+import 'features/voice/domain/voice_provider.dart';
 
 final class AppRouter {
   const AppRouter(this._dependencies);
@@ -53,7 +54,12 @@ final class AppRouter {
       case AppRoutes.pictogramas:
         return MaterialPageRoute<void>(builder: (_) => _pictosRoute(const PictogramasScreen()));
       case AppRoutes.comunicar:
-        return MaterialPageRoute<void>(builder: (_) => _pictosRoute(const ComunicarScreen()));
+        return MaterialPageRoute<void>(
+          builder: (_) => Provider<VoiceProvider>.value(
+            value: _dependencies.voiceProvider,
+            child: _pictosRoute(const ComunicarScreen()),
+          ),
+        );
       case AppRoutes.perfil:
         return MaterialPageRoute<void>(builder: (_) => const ProfileScreen());
       case AppRoutes.category:

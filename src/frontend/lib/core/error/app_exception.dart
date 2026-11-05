@@ -18,3 +18,8 @@ final class DataSourceException extends AppException {
 final class DuplicateCatalogException extends AppException {
   const DuplicateCatalogException(super.message);
 }
+
+/// La generación de voz falló (engine no disponible, voz sin configurar, etc.).
+final class VoiceException extends AppException {
+  const VoiceException(super.message);
+}
