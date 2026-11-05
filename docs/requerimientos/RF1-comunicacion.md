@@ -44,4 +44,7 @@ El sonido nunca es automático: el niño controla cuándo se emite la palabra.
 ## Notas de implementación (no normativas)
 
 - RF1.11 sugiere un `VoiceProvider` en `domain/` con una implementación sobre `flutter_tts` (u equivalente nativo). Cambiar de proveedor no debe tocar pantallas ni providers de presentación.
-- Con selects ilimitados + scroll en la barra, considerar qué pasa con usability de la mini-basura cuando la barra scrollea (targets pequeños en movimiento =ASSWORD riesgo de toques accidentales).
+- Con selects ilimitados + scroll en la barra, considerar qué pasa con usability de la mini-basura cuando la barra scrollea (targets pequeños en movimiento = riesgo de toques accidentales).
+- RF1.2: el destaque visual del toque vive en `PictoCard` (borde/scale transitorio de ~450ms, key de test `picto_highlighted`) y es autónomo: la card flashea sin acoplar la barra al estado de la grilla.
+- Cobertura de tests (`test/comunicar_flow_test.dart`): RF1.2 (toque sin sonido, chip en barra, destaque transitorio), RF1.3/1.4 (orden por posición X, sin límite), RF1.5/1.6 (Play en orden, palabra por palabra), RF1.7 (reproducible de nuevo), RF1.8 (basura global), RF1.9 (mini-basura individual), Play deshabilitado con frase vacía. La voz se verifica con un `RecordingVoice` que registra los `speak`: si la UI sonara al construir, los tests de RF1.2 rompen.
+- El "karaoke" durante Play (pregunta abierta #1) ya existe de facto en `_PlaySequenceDialog` (picto activo agrandado + auto-scroll): sigue pendiente la decisión de hacerlo normativo.

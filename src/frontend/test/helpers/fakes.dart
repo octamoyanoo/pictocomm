@@ -251,11 +251,12 @@ AppDependencies fakeDependencies({
   List<Category> categories = const <Category>[],
   List<Picto> pictos = const <Picto>[],
   List<ChildProfile> children = const <ChildProfile>[],
+  VoiceProvider? voiceProvider,
 }) {
   return AppDependencies(
     categoryRepository: FakeCategoryRepository(categories: categories),
     pictoRepository: FakePictoRepository(pictos: pictos),
     childProfileRepository: FakeChildProfileRepository(children: children),
-    voiceProvider: FakeVoiceProvider(),
+    voiceProvider: voiceProvider ?? FakeVoiceProvider(),
   );
 }
