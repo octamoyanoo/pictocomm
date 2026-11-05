@@ -1,8 +1,10 @@
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:pictocomm/l10n/app_localizations.dart';
 import 'package:provider/provider.dart';
 
+import '../../../../core/i18n/locale_controller.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/utils/data_url.dart';
 import '../../../../core/widgets/app_bottom_nav.dart';
@@ -62,7 +64,7 @@ final class _ProfileScreenState extends State<ProfileScreen> {
       body: SafeArea(
         child: switch (state) {
           ChildrenLoadingState() => const Center(child: CircularProgressIndicator(color: AppColors.accent)),
-          ChildrenFailureState() => Center(child: Text('No se pudo leer los perfiles: ${state.message}')),
+          ChildrenFailureState() => Center(child: Text(AppLocalizations.of(context)!.profilesLoadError(state.message))),
           ChildrenLoadedState() => _ProfileContent(children: state.children, onAdd: _addChild, onDelete: _deleteChild),
         },
       ),
@@ -80,24 +82,29 @@ final class _ProfileContent extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return ListView(
       padding: const EdgeInsets.fromLTRB(20, 24, 20, 16),
       children: [
         Align(
           alignment: Alignment.centerLeft,
-          child: Text('Perfil', style: Theme.of(context).textTheme.titleLarge),
+          child: Text(l10n.profileTitle, style: Theme.of(context).textTheme.titleLarge),
         ),
         const SizedBox(height: 20),
         const _CaregiverCard(),
         const SizedBox(height: 20),
+        // RF4.2: selector de idioma de la UI, espacio del adulto. El cambio
+        // aplica en el momento (RF4.3) vía LocaleController sobre MaterialApp.
+        const _LanguageSection(),
+        const SizedBox(height: 20),
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            const Text('Niños', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: AppColors.textPrimary)),
+            Text(l10n.childrenSection, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: AppColors.textPrimary)),
             IconButton.filled(
               onPressed: onAdd,
               icon: const Icon(Icons.add),
-              tooltip: 'Agregar niño',
+              tooltip: l10n.addChildTooltip,
               style: IconButton.styleFrom(
                 backgroundColor: AppColors.accent,
                 foregroundColor: AppColors.surface,
@@ -110,7 +117,7 @@ final class _ProfileContent extends StatelessWidget {
           Padding(
             padding: const EdgeInsets.symmetric(vertical: 24),
             child: Text(
-              'No hay niños cargados todavía',
+              l10n.noChildrenYet,
               style: const TextStyle(fontSize: 14, color: AppColors.textSecondary),
             ),
           ),
@@ -120,11 +127,94 @@ final class _ProfileContent extends StatelessWidget {
   }
 }
 
+/// RF4.2: selector de idioma. Los nombres de idioma se muestran SIEMPRE en su
+/// propio idioma (Español/English/Português): no dependen del activo.
+final class _LanguageSection extends StatelessWidget {
+  const _LanguageSection();
+
+  static const Map<String, String> _nativeNames = <String, String>{
+    'es': 'Español',
+    'en': 'English',
+    'pt': 'Português',
+  };
+
+  @override
+  Widget build(BuildContext context) {
+    final controller = context.watch<LocaleController>();
+    final l10n = AppLocalizations.of(context)!;
+    return Container(
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+      decoration: BoxDecoration(color: AppColors.surface, borderRadius: BorderRadius.circular(16)),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            l10n.languageSection,
+            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: AppColors.textPrimary),
+          ),
+          // Tiles propios (no RadioListTile): tap directo al controller. Los
+          // Margin/Icon replican la métrica de un radio compacto.
+          Material(
+            color: Colors.transparent,
+            child: Column(
+              children: [
+                for (final code in LocaleController.supportedLanguageCodes)
+                  _LanguageOptionTile(
+                    isSelected: controller.languageCode == code,
+                    name: _nativeNames[code]!,
+                    onTap: () => controller.setLanguage(code),
+                  ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Tile de radio propio: tap directo (sin depender del RadioGroup nuevo
+/// de Flutter) e indicador visual del idioma activo (RF4.2).
+final class _LanguageOptionTile extends StatelessWidget {
+  const _LanguageOptionTile({
+    required this.isSelected,
+    required this.name,
+    required this.onTap,
+  });
+
+  final bool isSelected;
+  final String name;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return ListTile(
+      dense: true,
+      contentPadding: EdgeInsets.zero,
+      onTap: onTap,
+      leading: Icon(
+        isSelected ? Icons.radio_button_checked : Icons.radio_button_unchecked,
+        color: isSelected ? AppColors.accent : AppColors.textMuted,
+        size: 22,
+      ),
+      title: Text(
+        name,
+        style: TextStyle(
+          fontSize: 15,
+          fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
+          color: isSelected ? AppColors.accent : AppColors.textPrimary,
+        ),
+      ),
+    );
+  }
+}
+
 final class _CaregiverCard extends StatelessWidget {
   const _CaregiverCard();
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(color: AppColors.surface, borderRadius: BorderRadius.circular(16)),
@@ -136,17 +226,17 @@ final class _CaregiverCard extends StatelessWidget {
             child: Icon(Icons.face_outlined, color: AppColors.accent),
           ),
           const SizedBox(width: 12),
-          const Expanded(
+          Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('Mi cuenta', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: AppColors.textPrimary)),
-                SizedBox(height: 2),
-                Text('casa@pictocomm.app', style: TextStyle(fontSize: 13, color: AppColors.textSecondary)),
+                Text(l10n.accountSection, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: AppColors.textPrimary)),
+                const SizedBox(height: 2),
+                const Text('casa@pictocomm.app', style: TextStyle(fontSize: 13, color: AppColors.textSecondary)),
               ],
             ),
           ),
-          Text('Cerrar sesión', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.accent)),
+          Text(l10n.signOut, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.accent)),
         ],
       ),
     );
@@ -161,6 +251,7 @@ final class _ChildTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(12),
@@ -176,7 +267,7 @@ final class _ChildTile extends StatelessWidget {
           IconButton(
             onPressed: onDelete,
             icon: const Icon(Icons.delete_outline, color: AppColors.error),
-            tooltip: 'Eliminar perfil',
+            tooltip: l10n.deleteProfileTooltip,
           ),
         ],
       ),
@@ -227,13 +318,13 @@ final class _AddChildDialogState extends State<AddChildDialog> {
               const SizedBox(height: 8),
               ListTile(
                 leading: const Icon(Icons.photo_library_outlined, color: AppColors.accent),
-                title: const Text('Galería'),
+                title: Text(AppLocalizations.of(context)!.gallery),
                 onTap: () => Navigator.of(context).pop(ImageSource.gallery),
               ),
               ListTile(
                 enabled: !kIsWeb,
                 leading: Icon(Icons.photo_camera_outlined, color: kIsWeb ? AppColors.textMuted : AppColors.accent),
-                title: const Text('Cámara'),
+                title: Text(AppLocalizations.of(context)!.camera),
                 onTap: kIsWeb ? null : () => Navigator.of(context).pop(ImageSource.camera),
               ),
               const SizedBox(height: 8),
@@ -260,8 +351,9 @@ final class _AddChildDialogState extends State<AddChildDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return AlertDialog(
-      title: const Text('Agregar niño'),
+      title: Text(l10n.addChildDialog),
       content: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -288,7 +380,7 @@ final class _AddChildDialogState extends State<AddChildDialog> {
           TextField(
             controller: _nameController,
             autofocus: true,
-            decoration: const InputDecoration(hintText: 'Nombre'),
+            decoration: InputDecoration(hintText: l10n.nameLabel),
           ),
           const SizedBox(height: 16),
           Wrap(
@@ -315,8 +407,8 @@ final class _AddChildDialogState extends State<AddChildDialog> {
         ],
       ),
       actions: [
-        TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('Cancelar')),
-        TextButton(onPressed: _submit, child: const Text('Agregar')),
+        TextButton(onPressed: () => Navigator.of(context).pop(), child: Text(l10n.cancel)),
+        TextButton(onPressed: _submit, child: Text(l10n.addChildAction)),
       ],
     );
   }
@@ -330,12 +422,13 @@ final class _ConfirmDeleteStepOne extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return AlertDialog(
-      title: Text('¿Eliminar a ${child.name}?'),
-      content: const Text('El perfil del niño se borra del dispositivo, junto a su configuración.'),
+      title: Text(l10n.deleteChildTitle(child.name)),
+      content: Text(l10n.deleteChildContent),
       actions: [
-        TextButton(onPressed: () => Navigator.of(context).pop(false), child: const Text('Cancelar')),
-        TextButton(onPressed: () => Navigator.of(context).pop(true), child: const Text('Seguir')),
+        TextButton(onPressed: () => Navigator.of(context).pop(false), child: Text(l10n.cancel)),
+        TextButton(onPressed: () => Navigator.of(context).pop(true), child: Text(l10n.next)),
       ],
     );
   }
@@ -349,15 +442,16 @@ final class _ConfirmDeleteStepTwo extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return AlertDialog(
-      title: const Text('¿Confirmar el borrado?'),
-      content: Text('"${child.name}" se borrará definitivamente. Esta acción no se puede deshacer.'),
+      title: Text(l10n.confirmDeleteTitle),
+      content: Text(l10n.deleteChildFinalContent(child.name)),
       actions: [
-        TextButton(onPressed: () => Navigator.of(context).pop(false), child: const Text('Conservar')),
+        TextButton(onPressed: () => Navigator.of(context).pop(false), child: Text(l10n.keep)),
         TextButton(
           onPressed: () => Navigator.of(context).pop(true),
           style: TextButton.styleFrom(foregroundColor: AppColors.error),
-          child: const Text('Eliminar definitivamente'),
+          child: Text(l10n.deleteForever),
         ),
       ],
     );

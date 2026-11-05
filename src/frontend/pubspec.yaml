@@ -30,6 +30,8 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  flutter_localizations:
+    sdk: flutter
 
   image_picker: ^1.2.4
   flutter_tts: ^4.2.0
@@ -55,6 +57,9 @@ dev_dependencies:
 flutter:
 
   uses-material-design: true
+
+  # RF4: genera las tablas de localización desde lib/l10n/*.arb (ver l10n.yaml).
+  generate: true
 
   assets:
     - assets/images/alimentos/

@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:pictocomm/l10n/app_localizations.dart';
 import 'package:provider/provider.dart';
 
 import '../../../../core/error/app_exception.dart';
@@ -158,7 +159,7 @@ final class _ComunicarHeader extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
       child: Align(
         alignment: Alignment.centerLeft,
-        child: Text('Comunicar', style: Theme.of(context).textTheme.titleLarge),
+        child: Text(AppLocalizations.of(context)!.comunicarTitle, style: Theme.of(context).textTheme.titleLarge),
       ),
     );
   }
@@ -175,6 +176,7 @@ final class _SentenceStrip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
       child: Container(
@@ -185,10 +187,10 @@ final class _SentenceStrip extends StatelessWidget {
           children: [
             Expanded(
               child: sentence.isEmpty
-                  ? const Center(
+                  ? Center(
                       child: Text(
-                        'Toca pictogramas para armar tu frase',
-                        style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.accent),
+                        l10n.sentenceStripEmpty,
+                        style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.accent),
                       ),
                     )
                   : ListView.separated(
@@ -206,13 +208,13 @@ final class _SentenceStrip extends StatelessWidget {
             Row(
               mainAxisAlignment: MainAxisAlignment.end,
               children: [
-                _StripAction(icon: Icons.backspace_outlined, tooltip: 'Quitar último', onPressed: onRemoveLast),
-                _StripAction(icon: Icons.delete_outline, tooltip: 'Limpiar frase', onPressed: onClear),
+                _StripAction(icon: Icons.backspace_outlined, tooltip: l10n.removeLastTooltip, onPressed: onRemoveLast),
+                _StripAction(icon: Icons.delete_outline, tooltip: l10n.clearSentenceTooltip, onPressed: onClear),
                 const SizedBox(width: 8),
                 IconButton.filled(
                   onPressed: sentence.isEmpty ? null : onPlay,
                   icon: const Icon(Icons.play_arrow, size: 22),
-                  tooltip: 'Reproducir frase',
+                  tooltip: l10n.playTooltip,
                   style: IconButton.styleFrom(
                     backgroundColor: AppColors.accent,
                     foregroundColor: AppColors.surface,
@@ -307,7 +309,7 @@ final class _CategoryChips extends StatelessWidget {
           Padding(
             padding: const EdgeInsets.only(right: 8),
             child: ChoiceChip(
-              label: const Text('Todos'),
+              label: Text(AppLocalizations.of(context)!.allCategoriesChip),
               selected: selectedId == null,
               onSelected: (_) => onSelected(null),
               labelStyle: TextStyle(
@@ -348,7 +350,7 @@ final class EmptyCategoryHint extends StatelessWidget {
   Widget build(BuildContext context) {
     return Center(
       child: Text(
-        'No hay pictogramas en esta categoría',
+        AppLocalizations.of(context)!.emptyCategoryHint,
         style: const TextStyle(fontSize: 14, color: AppColors.textSecondary),
       ),
     );
@@ -450,9 +452,9 @@ final class _PlaySequenceDialogState extends State<_PlaySequenceDialog> {
           ),
           if (_voiceFailed) ...[
             const SizedBox(height: 8),
-            const Text(
-              'Voz no disponible en este dispositivo',
-              style: TextStyle(fontSize: 13, color: Colors.white70),
+            Text(
+              AppLocalizations.of(context)!.voiceUnavailable,
+              style: const TextStyle(fontSize: 13, color: Colors.white70),
             ),
           ],
           const SizedBox(height: 16),
@@ -473,7 +475,7 @@ final class _PlaySequenceDialogState extends State<_PlaySequenceDialog> {
           IconButton(
             onPressed: () => Navigator.of(context).pop(),
             icon: const Icon(Icons.close, size: 28),
-            tooltip: 'Cerrar',
+            tooltip: AppLocalizations.of(context)!.close,
             color: Colors.white,
           ),
         ],

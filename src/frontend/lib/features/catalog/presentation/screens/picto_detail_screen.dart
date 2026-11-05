@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:pictocomm/l10n/app_localizations.dart';
 import 'package:provider/provider.dart';
 
 import '../../../../core/error/app_exception.dart';
@@ -14,14 +15,15 @@ final class PictoDetailScreen extends StatelessWidget {
 
   Future<void> _confirmDelete(BuildContext context) async {
     final provider = context.read<PictosProvider>();
+    final l10n = AppLocalizations.of(context)!;
     final first = await showDialog<bool>(
       context: context,
       builder: (_) => AlertDialog(
-        title: Text('¿Eliminar "${picto.label}"?'),
-        content: const Text('El pictograma se borra del dispositivo para este niño.'),
+        title: Text(l10n.deletePictoTitle(picto.label)),
+        content: Text(l10n.deletePictoContent),
         actions: [
-          TextButton(onPressed: () => Navigator.of(context).pop(false), child: const Text('Cancelar')),
-          TextButton(onPressed: () => Navigator.of(context).pop(true), child: const Text('Seguir')),
+          TextButton(onPressed: () => Navigator.of(context).pop(false), child: Text(l10n.cancel)),
+          TextButton(onPressed: () => Navigator.of(context).pop(true), child: Text(l10n.next)),
         ],
       ),
     );
@@ -31,14 +33,14 @@ final class PictoDetailScreen extends StatelessWidget {
     final second = await showDialog<bool>(
       context: context,
       builder: (_) => AlertDialog(
-        title: const Text('¿Confirmar el borrado?'),
-        content: const Text('Esta acción no se puede deshacer.'),
+        title: Text(l10n.confirmDeleteTitle),
+        content: Text(l10n.deleteIrreversible),
         actions: [
-          TextButton(onPressed: () => Navigator.of(context).pop(false), child: const Text('Conservar')),
+          TextButton(onPressed: () => Navigator.of(context).pop(false), child: Text(l10n.keep)),
           TextButton(
             onPressed: () => Navigator.of(context).pop(true),
             style: TextButton.styleFrom(foregroundColor: AppColors.error),
-            child: const Text('Eliminar definitivamente'),
+            child: Text(l10n.deleteForever),
           ),
         ],
       ),
@@ -84,12 +86,18 @@ final class PictoDetailScreen extends StatelessWidget {
                 TextButton.icon(
                   onPressed: () => _confirmDelete(context),
                   icon: const Icon(Icons.delete_outline, color: AppColors.error),
-                  label: const Text('Eliminar pictograma', style: TextStyle(color: AppColors.error)),
+                  label: Text(
+                    AppLocalizations.of(context)!.deletePictoButton,
+                    style: const TextStyle(color: AppColors.error),
+                  ),
                 ),
               TextButton.icon(
                 onPressed: () => Navigator.of(context).pop(),
                 icon: const Icon(Icons.close, color: Colors.white70),
-                label: const Text('Cerrar', style: TextStyle(color: Colors.white70)),
+                label: Text(
+                  AppLocalizations.of(context)!.close,
+                  style: const TextStyle(color: Colors.white70),
+                ),
               ),
               const SizedBox(height: 16),
             ],

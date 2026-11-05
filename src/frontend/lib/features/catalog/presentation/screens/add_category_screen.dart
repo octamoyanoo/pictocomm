@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:pictocomm/l10n/app_localizations.dart';
 import 'package:provider/provider.dart';
 
 import '../../../../core/theme/app_theme.dart';
@@ -36,9 +37,10 @@ final class _AddCategoryScreenState extends State<AddCategoryScreen> {
   }
 
   Future<void> _save() async {
+    final l10n = AppLocalizations.of(context)!;
     final name = _nameController.text.trim();
     if (name.isEmpty) {
-      setState(() => _errorText = 'Ingresá un nombre');
+      setState(() => _errorText = l10n.nameFieldRequired);
       return;
     }
     setState(() {
@@ -57,29 +59,31 @@ final class _AddCategoryScreenState extends State<AddCategoryScreen> {
       }
       setState(() {
         _saving = false;
-        _errorText = _friendlyError(error);
+        _errorText = _friendlyError(error, AppLocalizations.of(context)!);
       });
     }
   }
 
   Color _selectedColor = _palette.first;
 
-  String _friendlyError(Object error) {
-    final message = error.toString();
-    if (message.contains('Ya existe')) {
-      return 'Ya existe una categoría con ese nombre';
+  /// La excusa real llega por tipo (DuplicateCatalogException), no por texto:
+  /// el mensaje de data/ queda en el idioma del dev, el visible se traduce.
+  String _friendlyError(Object error, AppLocalizations l10n) {
+    if (error.toString().contains('Ya existe')) {
+      return l10n.duplicateCategory;
     }
-    return 'No se pudo guardar. Intentá de nuevo.';
+    return l10n.saveError;
   }
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Scaffold(
       body: SafeArea(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            _AddScreenHeader(title: 'Nuevo catálogo', onBack: () => Navigator.of(context).maybePop()),
+            _AddScreenHeader(title: l10n.addCategoryTitle, onBack: () => Navigator.of(context).maybePop()),
             Expanded(
               child: SingleChildScrollView(
                 padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
@@ -95,20 +99,20 @@ final class _AddCategoryScreenState extends State<AddCategoryScreen> {
                       child: Icon(Icons.folder_outlined, color: _selectedColor, size: 56),
                     ),
                     const SizedBox(height: 24),
-                    const Align(
+                    Align(
                       alignment: Alignment.centerLeft,
-                      child: _FieldLabel('Nombre de la categoría'),
+                      child: _FieldLabel(l10n.categoryNameLabel),
                     ),
                     TextField(
                       controller: _nameController,
                       autofocus: true,
                       textCapitalization: TextCapitalization.sentences,
-                      decoration: InputDecoration(hintText: 'Ej: Bebidas', errorText: _errorText),
+                      decoration: InputDecoration(hintText: l10n.categoryNameHint, errorText: _errorText),
                     ),
                     const SizedBox(height: 24),
-                    const Align(
+                    Align(
                       alignment: Alignment.centerLeft,
-                      child: _FieldLabel('Color'),
+                      child: _FieldLabel(l10n.colorLabel),
                     ),
                     Wrap(
                       spacing: 12,
@@ -143,7 +147,7 @@ final class _AddCategoryScreenState extends State<AddCategoryScreen> {
                               width: 22,
                               child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2.5),
                             )
-                          : const Text('Guardar catálogo'),
+                          : Text(AppLocalizations.of(context)!.saveCategoryButton),
                     ),
                   ],
                 ),

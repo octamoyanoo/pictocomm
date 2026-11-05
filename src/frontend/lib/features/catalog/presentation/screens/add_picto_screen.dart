@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:image_picker/image_picker.dart';
+import 'package:pictocomm/l10n/app_localizations.dart';
 import 'package:provider/provider.dart';
 
 import '../../../../core/error/app_exception.dart';
@@ -44,6 +45,7 @@ final class _AddPictoScreenState extends State<AddPictoScreen> {
   /// (RF3.3). En todos los casos los bytes terminan guardados en data URL
   /// local: el picto funciona offline después de crearse.
   Future<void> _chooseSource() async {
+    final l10n = AppLocalizations.of(context)!;
     final source = await showModalBottomSheet<String>(
       context: context,
       backgroundColor: AppColors.surface,
@@ -56,20 +58,20 @@ final class _AddPictoScreenState extends State<AddPictoScreen> {
               const SizedBox(height: 8),
               ListTile(
                 leading: const Icon(Icons.photo_library_outlined, color: AppColors.accent),
-                title: const Text('Galería', style: TextStyle(fontWeight: FontWeight.w600)),
+                title: Text(l10n.gallery, style: const TextStyle(fontWeight: FontWeight.w600)),
                 onTap: () => Navigator.of(context).pop('gallery'),
               ),
               ListTile(
                 enabled: !kIsWeb,
                 leading: Icon(Icons.photo_camera_outlined, color: kIsWeb ? AppColors.textMuted : AppColors.accent),
-                title: const Text('Cámara', style: TextStyle(fontWeight: FontWeight.w600)),
-                subtitle: kIsWeb ? const Text('No disponible en el navegador', style: TextStyle(fontSize: 12)) : null,
+                title: Text(l10n.camera, style: const TextStyle(fontWeight: FontWeight.w600)),
+                subtitle: kIsWeb ? Text(l10n.cameraUnavailable, style: const TextStyle(fontSize: 12)) : null,
                 onTap: kIsWeb ? null : () => Navigator.of(context).pop('camera'),
               ),
               ListTile(
                 leading: const Icon(Icons.link, color: AppColors.accent),
-                title: const Text('Pegar URL de imagen', style: TextStyle(fontWeight: FontWeight.w600)),
-                subtitle: const Text('Ej: una imagen de Google Imágenes', style: TextStyle(fontSize: 12)),
+                title: Text(l10n.pasteImageUrl, style: const TextStyle(fontWeight: FontWeight.w600)),
+                subtitle: Text(l10n.pasteUrlSub, style: const TextStyle(fontSize: 12)),
                 onTap: () => Navigator.of(context).pop('url'),
               ),
               const SizedBox(height: 8),
@@ -117,7 +119,7 @@ final class _AddPictoScreenState extends State<AddPictoScreen> {
       }
       setState(() {
         _loadingImage = false;
-        _errorText = 'No se pudo cargar la imagen';
+        _errorText = AppLocalizations.of(context)!.imageLoadError;
       });
     }
   }
@@ -150,8 +152,7 @@ final class _AddPictoScreenState extends State<AddPictoScreen> {
       }
       setState(() {
         _loadingImage = false;
-        _errorText = 'No se pudo descargar la imagen (el sitio puede bloquearlo). '
-            'Guardala en el dispositivo y elegila desde la galería.';
+        _errorText = AppLocalizations.of(context)!.urlDownloadError;
       });
     }
   }
@@ -168,23 +169,24 @@ final class _AddPictoScreenState extends State<AddPictoScreen> {
   }
 
   Future<void> _save() async {
+    final l10n = AppLocalizations.of(context)!;
     final label = _labelController.text.trim();
     final categoryId = _categoryId;
     final childId = context.read<SessionProvider>().activeChild?.id;
     if (childId == null) {
-      setState(() => _errorText = 'Elegí primero un niño en "Cambiar de niño" (RF3.4)');
+      setState(() => _errorText = l10n.selectChildFirst);
       return;
     }
     if (label.isEmpty) {
-      setState(() => _errorText = 'Ingresá un nombre');
+      setState(() => _errorText = l10n.nameFieldRequired);
       return;
     }
     if (_imageDataUrl == null) {
-      setState(() => _errorText = 'Elegí una imagen');
+      setState(() => _errorText = l10n.imageRequired);
       return;
     }
     if (categoryId == null) {
-      setState(() => _errorText = 'Elegí una categoría');
+      setState(() => _errorText = l10n.categoryRequired);
       return;
     }
     setState(() {
@@ -214,13 +216,14 @@ final class _AddPictoScreenState extends State<AddPictoScreen> {
       }
       setState(() {
         _saving = false;
-        _errorText = 'No se pudo guardar. Intentá de nuevo.';
+        _errorText = AppLocalizations.of(context)!.saveError;
       });
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final state = context.watch<CatalogProvider>().state;
     final categories = state is CatalogLoadedState ? state.categories : const <Category>[];
     return Scaffold(
@@ -228,7 +231,7 @@ final class _AddPictoScreenState extends State<AddPictoScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            _AddScreenHeader(title: 'Nuevo pictograma', onBack: () => Navigator.of(context).maybePop()),
+            _AddScreenHeader(title: l10n.addPictoTitle, onBack: () => Navigator.of(context).maybePop()),
             Expanded(
               child: SingleChildScrollView(
                 padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
@@ -241,28 +244,28 @@ final class _AddPictoScreenState extends State<AddPictoScreen> {
                       onPick: _chooseSource,
                     ),
                     const SizedBox(height: 24),
-                    const Align(
+                    Align(
                       alignment: Alignment.centerLeft,
-                      child: _FieldLabel('Nombre'),
+                      child: _FieldLabel(l10n.nameFieldLabel),
                     ),
                     TextField(
                       controller: _labelController,
                       textCapitalization: TextCapitalization.sentences,
-                      decoration: const InputDecoration(hintText: 'Ej: Agua'),
+                      decoration: InputDecoration(hintText: l10n.nameFieldHint),
                     ),
                     const SizedBox(height: 16),
                     if (categories.isEmpty)
-                      const Align(
+                      Align(
                         alignment: Alignment.centerLeft,
                         child: Text(
-                          'Primero creá un catálogo para poder guardar pictogramas',
-                          style: TextStyle(fontSize: 13, color: AppColors.warning),
+                          l10n.firstCatalogWarning,
+                          style: const TextStyle(fontSize: 13, color: AppColors.warning),
                         ),
                       )
                     else
-                      const Align(
+                      Align(
                         alignment: Alignment.centerLeft,
-                        child: _FieldLabel('Categoría'),
+                        child: _FieldLabel(l10n.categoryFieldLabel),
                       ),
                     if (categories.isNotEmpty)
                       Wrap(
@@ -299,7 +302,7 @@ final class _AddPictoScreenState extends State<AddPictoScreen> {
                               width: 22,
                               child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2.5),
                             )
-                          : const Text('Guardar pictograma'),
+                          : Text(l10n.savePictoButton),
                     ),
                   ],
                 ),
@@ -339,9 +342,9 @@ final class _ImagePickerTile extends StatelessWidget {
                       children: [
                         const Icon(Icons.image_outlined, size: 48, color: AppColors.accent),
                         const SizedBox(height: 8),
-                        const Text(
-                          'Tocá para elegir una imagen',
-                          style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.accent),
+                        Text(
+                          AppLocalizations.of(context)!.tapToPickImage,
+                          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.accent),
                         ),
                       ],
                     )
@@ -397,26 +400,27 @@ final class _ImageUrlDialogState extends State<_ImageUrlDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return AlertDialog(
-      title: const Text('Imagen desde la web'),
+      title: Text(l10n.webImageTitle),
       content: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Text(
-            'En Google Imágenes: mantené apretada la imagen → "Copiar dirección de imagen" y pegala acá.',
-            style: TextStyle(fontSize: 13, color: AppColors.textSecondary),
+          Text(
+            l10n.webImageContent,
+            style: const TextStyle(fontSize: 13, color: AppColors.textSecondary),
           ),
           const SizedBox(height: 12),
           TextField(
             controller: _urlController,
             autofocus: true,
-            decoration: const InputDecoration(hintText: 'https://...'),
+            decoration: InputDecoration(hintText: l10n.urlInputHint),
           ),
         ],
       ),
       actions: [
-        TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('Cancelar')),
-        TextButton(onPressed: () => Navigator.of(context).pop(_urlController.text), child: const Text('Descargar')),
+        TextButton(onPressed: () => Navigator.of(context).pop(), child: Text(l10n.cancel)),
+        TextButton(onPressed: () => Navigator.of(context).pop(_urlController.text), child: Text(l10n.download)),
       ],
     );
   }

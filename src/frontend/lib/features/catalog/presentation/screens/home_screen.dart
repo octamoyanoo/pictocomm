@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:pictocomm/l10n/app_localizations.dart';
 import 'package:provider/provider.dart';
 
 import '../../../../core/constants/app_routes.dart';
@@ -27,6 +28,7 @@ final class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _openAddMenu() async {
+    final l10n = AppLocalizations.of(context)!;
     final choice = await showModalBottomSheet<String>(
       context: context,
       backgroundColor: AppColors.surface,
@@ -39,14 +41,14 @@ final class _HomeScreenState extends State<HomeScreen> {
               const SizedBox(height: 8),
               ListTile(
                 leading: const Icon(Icons.folder_special_outlined, color: AppColors.accent),
-                title: const Text('Nuevo catálogo', style: TextStyle(fontWeight: FontWeight.w600)),
-                subtitle: const Text('Crear una categoría', style: TextStyle(fontSize: 12, color: AppColors.textSecondary)),
+                title: Text(l10n.newCatalog, style: const TextStyle(fontWeight: FontWeight.w600)),
+                subtitle: Text(l10n.newCatalogSub, style: const TextStyle(fontSize: 12, color: AppColors.textSecondary)),
                 onTap: () => Navigator.of(context).pop(AppRoutes.addCategory),
               ),
               ListTile(
                 leading: const Icon(Icons.add_photo_alternate_outlined, color: AppColors.accent),
-                title: const Text('Nuevo pictograma', style: TextStyle(fontWeight: FontWeight.w600)),
-                subtitle: const Text('Agregar una imagen a una categoría', style: TextStyle(fontSize: 12, color: AppColors.textSecondary)),
+                title: Text(l10n.newPicto, style: const TextStyle(fontWeight: FontWeight.w600)),
+                subtitle: Text(l10n.newPictoSub, style: const TextStyle(fontSize: 12, color: AppColors.textSecondary)),
                 onTap: () => Navigator.of(context).pop(AppRoutes.addPicto),
               ),
               const SizedBox(height: 8),
@@ -98,6 +100,7 @@ final class _Header extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final child = activeChild;
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
@@ -107,14 +110,14 @@ final class _Header extends StatelessWidget {
           // Saludo ligado a la sesión activa (RF2.2). Sin chico elegido,
           // el saludo genérico de las primeras corridas.
           if (child == null)
-            const Text('Hola 👋', style: TextStyle(fontSize: 22, fontWeight: FontWeight.w700, color: AppColors.textPrimary))
+            Text(l10n.hola, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w700, color: AppColors.textPrimary))
           else
             Row(
               children: [
                 ChildAvatar(child: child, radius: 16),
                 const SizedBox(width: 10),
                 Text(
-                  'Hola, ${child.name} 👋',
+                  l10n.holaName(child.name),
                   style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w700, color: AppColors.textPrimary),
                 ),
               ],
@@ -125,13 +128,13 @@ final class _Header extends StatelessWidget {
               IconButton.filledTonal(
                 onPressed: () => Navigator.of(context).pushReplacementNamed(AppRoutes.childSelector),
                 icon: const Icon(Icons.swap_horiz),
-                tooltip: 'Cambiar de niño',
+                tooltip: l10n.changeChildTooltip,
               ),
               const SizedBox(width: 8),
               IconButton.filled(
                 onPressed: onAddTapped,
                 icon: const Icon(Icons.add),
-                tooltip: 'Agregar catálogo o pictograma',
+                tooltip: l10n.addMenuTooltip,
                 style: IconButton.styleFrom(
                   backgroundColor: AppColors.accent,
                   foregroundColor: AppColors.surface,
@@ -167,7 +170,7 @@ final class _CatalogContent extends StatelessWidget {
           Expanded(
             child: Center(
               child: Text(
-                'Sin resultados para "$query"',
+                AppLocalizations.of(context)!.noResults(query),
                 textAlign: TextAlign.center,
                 style: const TextStyle(fontSize: 14, color: AppColors.textSecondary),
               ),
@@ -207,9 +210,9 @@ final class _SearchField extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
       child: TextField(
         onChanged: onQueryChanged,
-        decoration: const InputDecoration(
-          hintText: 'Buscar pictogramas...',
-          prefixIcon: Icon(Icons.search, color: AppColors.textMuted),
+        decoration: InputDecoration(
+          hintText: AppLocalizations.of(context)!.searchHint,
+          prefixIcon: const Icon(Icons.search, color: AppColors.textMuted),
         ),
       ),
     );
@@ -221,16 +224,17 @@ final class _SectionRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 16, 8, 0),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          const Text('Mis Catálogos', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: AppColors.textPrimary)),
+          Text(l10n.myCatalogs, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: AppColors.textPrimary)),
           TextButton(
             onPressed: () => Navigator.of(context).pushNamed(AppRoutes.pictogramas),
             style: TextButton.styleFrom(textStyle: const TextStyle(fontSize: 13)),
-            child: const Text('Ver todos'),
+            child: Text(l10n.verTodos),
           ),
         ],
       ),
@@ -308,7 +312,10 @@ final class _CategoryCard extends StatelessWidget {
                 children: [
                   Text(category.name, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: AppColors.textPrimary)),
                   const SizedBox(height: 2),
-                  Text(pictoCount == 1 ? '1 pictograma' : '$pictoCount pictogramas', style: const TextStyle(fontSize: 12, color: AppColors.textSecondary)),
+                  Text(
+                    AppLocalizations.of(context)!.pictogramaCount(pictoCount),
+                    style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
+                  ),
                 ],
               ),
             ),

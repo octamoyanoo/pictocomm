@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:pictocomm/l10n/app_localizations.dart';
 import 'package:provider/provider.dart';
 
 import '../../../../core/constants/app_routes.dart';
@@ -58,7 +59,7 @@ final class _PictogramasHeader extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
       child: Align(
         alignment: Alignment.centerLeft,
-        child: Text('Pictogramas', style: Theme.of(context).textTheme.titleLarge),
+        child: Text(AppLocalizations.of(context)!.pictogramasTitle, style: Theme.of(context).textTheme.titleLarge),
       ),
     );
   }
@@ -84,7 +85,7 @@ final class _PictogramasContent extends StatelessWidget {
           child: pictos.isEmpty
               ? Center(
                   child: Text(
-                    'Sin resultados para "$query"',
+                    AppLocalizations.of(context)!.noResults(query),
                     style: const TextStyle(fontSize: 14, color: AppColors.textSecondary),
                   ),
                 )
@@ -106,9 +107,9 @@ final class _PictogramaSearchField extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
       child: TextField(
         onChanged: onQueryChanged,
-        decoration: const InputDecoration(
-          hintText: 'Buscar pictogramas...',
-          prefixIcon: Icon(Icons.search, color: AppColors.textMuted),
+        decoration: InputDecoration(
+          hintText: AppLocalizations.of(context)!.searchHint,
+          prefixIcon: const Icon(Icons.search, color: AppColors.textMuted),
         ),
       ),
     );

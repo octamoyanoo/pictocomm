@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:pictocomm/l10n/app_localizations.dart';
 
 import '../../../../core/constants/app_routes.dart';
 import '../../../../core/theme/app_theme.dart';
@@ -31,12 +32,12 @@ final class _SignUpScreenState extends State<SignUpScreen> {
     super.dispose();
   }
 
-  String? _validatePassword(String? value) {
+  String? _validatePassword(String? value, AppLocalizations l10n) {
     if (value == null || value.isEmpty) {
-      return 'Ingresá una contraseña';
+      return l10n.passwordRequired;
     }
     if (value.length < 8) {
-      return 'Debe tener al menos 8 caracteres';
+      return l10n.passwordTooShort;
     }
     return null;
   }
@@ -50,6 +51,7 @@ final class _SignUpScreenState extends State<SignUpScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Scaffold(
       body: SafeArea(
         child: LayoutBuilder(
@@ -70,44 +72,44 @@ final class _SignUpScreenState extends State<SignUpScreen> {
                           children: [
                             const _LogoSection(),
                             const SizedBox(height: 32),
-                            const _FieldLabel('Nombre'),
+                            _FieldLabel(l10n.nameLabel),
                             TextFormField(
                               controller: _nameController,
                               textCapitalization: TextCapitalization.words,
                               autofillHints: const [AutofillHints.name],
                               textInputAction: TextInputAction.next,
-                              decoration: const InputDecoration(hintText: 'Tu nombre'),
+                              decoration: InputDecoration(hintText: l10n.nameExampleHint),
                               key: const Key('signup_name'),
                               validator: (value) {
                                 if (value == null || value.trim().isEmpty) {
-                                  return 'Ingresá tu nombre';
+                                  return l10n.nameRequired;
                                 }
                                 return null;
                               },
                               onFieldSubmitted: (_) => FocusScope.of(context).nextFocus(),
                             ),
                             const SizedBox(height: 16),
-                            const _FieldLabel('Correo electrónico'),
+                            _FieldLabel(l10n.emailLabel),
                             TextFormField(
                               controller: _emailController,
                               keyboardType: TextInputType.emailAddress,
                               autofillHints: const [AutofillHints.email],
                               textInputAction: TextInputAction.next,
-                              decoration: const InputDecoration(hintText: 'tu@email.com'),
+                              decoration: InputDecoration(hintText: l10n.emailHint),
                               key: const Key('signup_email'),
                               validator: (value) {
                                 if (value == null || value.trim().isEmpty) {
-                                  return 'Ingresá tu correo';
+                                  return l10n.emailRequired;
                                 }
                                 if (!_emailRegExp.hasMatch(value.trim())) {
-                                  return 'El correo no es válido';
+                                  return l10n.emailInvalid;
                                 }
                                 return null;
                               },
                               onFieldSubmitted: (_) => FocusScope.of(context).nextFocus(),
                             ),
                             const SizedBox(height: 16),
-                            const _FieldLabel('Contraseña'),
+                            _FieldLabel(l10n.passwordLabel),
                             TextFormField(
                               controller: _passwordController,
                               keyboardType: TextInputType.visiblePassword,
@@ -116,7 +118,7 @@ final class _SignUpScreenState extends State<SignUpScreen> {
                               key: const Key('signup_password'),
                               obscureText: _obscurePassword,
                               decoration: InputDecoration(
-                                hintText: '••••••••',
+                                hintText: l10n.passwordHint,
                                 suffixIcon: IconButton(
                                   onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
                                   icon: Icon(
@@ -125,11 +127,11 @@ final class _SignUpScreenState extends State<SignUpScreen> {
                                   ),
                                 ),
                               ),
-                              validator: _validatePassword,
+                              validator: (value) => _validatePassword(value, l10n),
                               onFieldSubmitted: (_) => FocusScope.of(context).nextFocus(),
                             ),
                             const SizedBox(height: 16),
-                            const _FieldLabel('Confirmar contraseña'),
+                            _FieldLabel(l10n.confirmPasswordLabel),
                             TextFormField(
                               controller: _confirmController,
                               keyboardType: TextInputType.visiblePassword,
@@ -137,7 +139,7 @@ final class _SignUpScreenState extends State<SignUpScreen> {
                               key: const Key('signup_confirm_password'),
                               obscureText: _obscureConfirmPassword,
                               decoration: InputDecoration(
-                                hintText: '••••••••',
+                                hintText: l10n.passwordHint,
                                 suffixIcon: IconButton(
                                   onPressed:
                                       () => setState(() => _obscureConfirmPassword = !_obscureConfirmPassword),
@@ -150,19 +152,19 @@ final class _SignUpScreenState extends State<SignUpScreen> {
                                 ),
                               ),
                               validator: (value) {
-                                final passwordError = _validatePassword(value);
+                                final passwordError = _validatePassword(value, l10n);
                                 if (passwordError != null) {
                                   return passwordError;
                                 }
                                 if (value != _passwordController.text) {
-                                  return 'Las contraseñas no coinciden';
+                                  return l10n.passwordsMismatch;
                                 }
                                 return null;
                               },
                               onFieldSubmitted: (_) => _submit(),
                             ),
                             const SizedBox(height: 24),
-                            ElevatedButton(onPressed: _submit, child: const Text('Crear Cuenta')),
+                            ElevatedButton(onPressed: _submit, child: Text(l10n.createAccountButton)),
                             const SizedBox(height: 24),
                             const Divider(color: AppColors.surfaceSecondary, thickness: 1),
                             const SizedBox(height: 16),
@@ -198,7 +200,10 @@ final class _LogoSection extends StatelessWidget {
         const SizedBox(height: 12),
         const Text('PictoComm', style: TextStyle(fontSize: 28, fontWeight: FontWeight.w700, color: AppColors.textPrimary)),
         const SizedBox(height: 6),
-        const Text('Creá tu cuenta para empezar', style: TextStyle(fontSize: 14, color: AppColors.textSecondary)),
+        Text(
+          AppLocalizations.of(context)!.signupTagline,
+          style: const TextStyle(fontSize: 14, color: AppColors.textSecondary),
+        ),
       ],
     );
   }
@@ -226,6 +231,7 @@ final class _LoginLink extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return GestureDetector(
       onTap: () {
         Navigator.of(context).pushReplacementNamed(AppRoutes.login);
@@ -233,12 +239,12 @@ final class _LoginLink extends StatelessWidget {
       behavior: HitTestBehavior.opaque,
       child: Text.rich(
         TextSpan(
-          text: '¿Ya tienes cuenta? ',
+          text: l10n.haveAccount,
           style: const TextStyle(fontSize: 14, color: AppColors.textSecondary),
           children: [
-            const TextSpan(
-              text: 'Inicia Sesión',
-              style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.accent),
+            TextSpan(
+              text: l10n.loginLinkHere,
+              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.accent),
             ),
           ],
         ),

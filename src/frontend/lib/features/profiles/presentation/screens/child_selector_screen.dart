@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:pictocomm/l10n/app_localizations.dart';
 import 'package:provider/provider.dart';
 
 import '../../../../core/constants/app_routes.dart';
@@ -35,7 +36,10 @@ final class _ChildSelectorScreenState extends State<ChildSelectorScreen> {
         child: switch (state) {
           ChildrenLoadingState() => const Center(child: CircularProgressIndicator(color: AppColors.accent)),
           ChildrenFailureState() => Center(
-              child: Text('No se pudo cargar los perfiles: ${state.message}', textAlign: TextAlign.center),
+              child: Text(
+                AppLocalizations.of(context)!.selectorLoadError(state.message),
+                textAlign: TextAlign.center,
+              ),
             ),
           ChildrenLoadedState() => _SelectorContent(
               children: state.children,
@@ -55,20 +59,21 @@ final class _SelectorContent extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         const SizedBox(height: 32),
-        const Text(
-          '¿Quién se comunica hoy?',
+        Text(
+          l10n.selectorTitle,
           textAlign: TextAlign.center,
-          style: TextStyle(fontSize: 26, fontWeight: FontWeight.w700, color: AppColors.textPrimary),
+          style: const TextStyle(fontSize: 26, fontWeight: FontWeight.w700, color: AppColors.textPrimary),
         ),
         const SizedBox(height: 8),
-        const Text(
-          'Toca tu foto para empezar',
+        Text(
+          l10n.selectorSubtitle,
           textAlign: TextAlign.center,
-          style: TextStyle(fontSize: 15, color: AppColors.textSecondary),
+          style: const TextStyle(fontSize: 15, color: AppColors.textSecondary),
         ),
         const SizedBox(height: 28),
         Expanded(
@@ -136,6 +141,7 @@ final class _EmptyChildrenHint extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(32),
@@ -144,17 +150,17 @@ final class _EmptyChildrenHint extends StatelessWidget {
           children: [
             const Icon(Icons.child_care_outlined, size: 56, color: AppColors.textMuted),
             const SizedBox(height: 16),
-            const Text(
-              'Todavía no hay perfiles de niño',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: AppColors.textPrimary),
+            Text(
+              l10n.selectorEmptyTitle,
+              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: AppColors.textPrimary),
             ),
             const SizedBox(height: 8),
-            const Text(
-              'Creá el primero para empezar',
-              style: TextStyle(fontSize: 14, color: AppColors.textSecondary),
+            Text(
+              l10n.selectorEmptySubtitle,
+              style: const TextStyle(fontSize: 14, color: AppColors.textSecondary),
             ),
             const SizedBox(height: 20),
-            ElevatedButton(onPressed: onCreate, child: const Text('Crear perfil')),
+            ElevatedButton(onPressed: onCreate, child: Text(l10n.createProfile)),
           ],
         ),
       ),

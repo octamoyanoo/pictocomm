@@ -1,0 +1,5 @@
+# RF4: tablas ARB por idioma, codigo generado junto al mapa (import estable,
+# sin synthetic packages).
+arb-dir: lib/l10n
+template-arb-file: app_es.arb
+output-localization-file: app_localizations.dart

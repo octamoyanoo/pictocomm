@@ -1,10 +1,12 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:pictocomm/l10n/app_localizations.dart';
 import 'package:provider/provider.dart';
 
 import 'core/constants/app_routes.dart';
 import 'core/di/injector.dart';
+import 'core/i18n/locale_controller.dart';
 import 'core/theme/app_theme.dart';
 import 'features/auth/presentation/screens/login_screen.dart';
 import 'features/auth/presentation/screens/sign_up_screen.dart';
@@ -127,34 +129,68 @@ final class _RouteNotFoundScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       body: Center(
-        child: Text('Ruta no encontrada', style: Theme.of(context).textTheme.titleMedium),
+        child: Text(
+          AppLocalizations.of(context)!.routeNotFound,
+          style: Theme.of(context).textTheme.titleMedium,
+        ),
       ),
     );
   }
 }
 
 final class PictoCommApp extends StatelessWidget {
-  const PictoCommApp({required this.dependencies, super.key});
+  const PictoCommApp({
+    required this.dependencies,
+    this.localeController,
+    super.key,
+  });
 
   final AppDependencies dependencies;
+
+  /// Inyectado desde `main` con persistencia. En tests (sin inyección) se usa
+  /// el controller efímero en español para que el idioma sea determinista.
+  final LocaleController? localeController;
 
   @override
   Widget build(BuildContext context) {
     final session = SessionProvider();
     final appRouter = AppRouter(dependencies, session);
+    final controller = localeController ?? LocaleController.ephemeral();
     // Al cambiar de chico en el selector, las vistas del catálogo refrescan
     // para mostrar los pictos de ese chico (RF3.6).
     session.addListener(appRouter.reloadAfterSessionChange);
     // Sesión activa (RF2.2): el chico elegido sobrevive la navegación entre
     // pestallas porque vive por encima del MaterialApp, no en cada ruta.
-    return ChangeNotifierProvider<SessionProvider>.value(
-      value: session,
-      child: MaterialApp(
-        title: 'PictoComm',
-        debugShowCheckedModeBanner: false,
-        theme: AppTheme.light(),
-        initialRoute: AppRoutes.login,
-        onGenerateRoute: appRouter.onGenerateRoute,
+    // El controller de idioma (RF4) vive al mismo nivel: su cambio reconstruye
+    // TODAS las rutas al instante (RF4.3) y el provider lo deja accesible para
+    // el selector de idioma de la pantalla Perfil (RF4.2).
+    return ChangeNotifierProvider<LocaleController>.value(
+      value: controller,
+      child: ChangeNotifierProvider<SessionProvider>.value(
+        value: session,
+        // El Builder observa (watch) el controller: cuando el idioma cambia
+        // (RF4.3) se reconstruye el MaterialApp completo con el locale nuevo.
+        // SIN esto el MaterialApp quedaba construido con el locale viejo,
+        // porque el provider solo reconstruye a quien hace watch.
+        child: Builder(
+          builder: (context) {
+            final locale = context.watch<LocaleController>().locale;
+            return MaterialApp(
+              title: 'PictoComm',
+              debugShowCheckedModeBanner: false,
+              theme: AppTheme.light(),
+              locale: locale,
+              supportedLocales: const [
+                Locale('es'),
+                Locale('en'),
+                Locale('pt'),
+              ],
+              localizationsDelegates: AppLocalizations.localizationsDelegates,
+              initialRoute: AppRoutes.login,
+              onGenerateRoute: appRouter.onGenerateRoute,
+            );
+          },
+        ),
       ),
     );
   }

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:pictocomm/l10n/app_localizations.dart';
 
 import '../../../../core/theme/app_theme.dart';
 
@@ -7,6 +8,7 @@ final class EmptyCatalogView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(24),
@@ -20,15 +22,15 @@ final class EmptyCatalogView extends StatelessWidget {
               child: const Icon(Icons.image_outlined, color: AppColors.accent, size: 44),
             ),
             const SizedBox(height: 20),
-            const Text(
-              'Aún no hay pictogramas',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: AppColors.textPrimary),
+            Text(
+              l10n.emptyCatalogTitle,
+              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: AppColors.textPrimary),
             ),
             const SizedBox(height: 8),
-            const Text(
-              'Cuando agregues imágenes aparecerán aquí',
+            Text(
+              l10n.emptyCatalogSubtitle,
               textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 14, color: AppColors.textSecondary),
+              style: const TextStyle(fontSize: 14, color: AppColors.textSecondary),
             ),
           ],
         ),

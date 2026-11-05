@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:pictocomm/l10n/app_localizations.dart';
 import 'package:provider/provider.dart';
 
 import '../../../../core/constants/app_routes.dart';
@@ -39,14 +40,15 @@ final class _CategoryContent extends StatelessWidget {
   /// categoría con sus pictos y volvemos al home (que recarga compartido).
   Future<void> _confirmDelete(BuildContext context) async {
     final provider = context.read<PictosProvider>();
+    final l10n = AppLocalizations.of(context)!;
     final first = await showDialog<bool>(
       context: context,
       builder: (_) => AlertDialog(
-        title: Text('¿Eliminar "${category.name}"?'),
-        content: Text('Se borra el catálogo y su contenido (${state.pictosOf(category.id).length} pictogramas de este niño).'),
+        title: Text(l10n.deleteCategoryTitle(category.name)),
+        content: Text(l10n.deleteCategoryContent(state.pictosOf(category.id).length)),
         actions: [
-          TextButton(onPressed: () => Navigator.of(context).pop(false), child: const Text('Cancelar')),
-          TextButton(onPressed: () => Navigator.of(context).pop(true), child: const Text('Seguir')),
+          TextButton(onPressed: () => Navigator.of(context).pop(false), child: Text(l10n.cancel)),
+          TextButton(onPressed: () => Navigator.of(context).pop(true), child: Text(l10n.next)),
         ],
       ),
     );
@@ -56,14 +58,14 @@ final class _CategoryContent extends StatelessWidget {
     final second = await showDialog<bool>(
       context: context,
       builder: (_) => AlertDialog(
-        title: const Text('¿Confirmar el borrado?'),
-        content: const Text('Esta acción no se puede deshacer.'),
+        title: Text(l10n.confirmDeleteTitle),
+        content: Text(l10n.deleteIrreversible),
         actions: [
-          TextButton(onPressed: () => Navigator.of(context).pop(false), child: const Text('Conservar')),
+          TextButton(onPressed: () => Navigator.of(context).pop(false), child: Text(l10n.keep)),
           TextButton(
             onPressed: () => Navigator.of(context).pop(true),
             style: TextButton.styleFrom(foregroundColor: AppColors.error),
-            child: const Text('Eliminar definitivamente'),
+            child: Text(l10n.deleteForever),
           ),
         ],
       ),
@@ -98,7 +100,7 @@ final class _CategoryContent extends StatelessWidget {
           child: pictos.isEmpty
               ? Center(
                   child: Text(
-                    'Todavía no hay pictogramas en esta categoría',
+                    AppLocalizations.of(context)!.categoryEmpty,
                     textAlign: TextAlign.center,
                     style: const TextStyle(fontSize: 14, color: AppColors.textSecondary),
                   ),
@@ -145,6 +147,7 @@ final class _CategoryHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
       child: Row(
@@ -164,7 +167,7 @@ final class _CategoryHeader extends StatelessWidget {
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  pictoCount == 1 ? '1 pictograma' : '$pictoCount pictogramas',
+                  l10n.pictogramaCount(pictoCount),
                   style: const TextStyle(fontSize: 13, color: AppColors.textSecondary),
                 ),
               ],
@@ -175,7 +178,7 @@ final class _CategoryHeader extends StatelessWidget {
             IconButton(
               onPressed: () => onDelete(context),
               icon: const Icon(Icons.delete_outline, color: AppColors.error),
-              tooltip: 'Eliminar catálogo',
+              tooltip: l10n.deleteCatalogTooltip,
             ),
         ],
       ),
