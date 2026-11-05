@@ -48,7 +48,7 @@ final class ChildrenProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<ChildProfile> createChild(String name, int? age, int? avatarColorValue) async {
+  Future<ChildProfile> createChild(String name, int? age, int? avatarColorValue, String? photoUrl) async {
     // El color viaja como ARGB int para no arrastrar dart:ui a las llamadas
     // de alto nivel; el repositorio decide cómo persistirlo.
     final created = await childProfileRepository.createChild(
@@ -57,6 +57,7 @@ final class ChildrenProvider extends ChangeNotifier {
         name: name,
         age: age,
         avatarColor: avatarColorValue == null ? null : Color(avatarColorValue),
+        photoUrl: photoUrl,
       ),
     );
     await load();

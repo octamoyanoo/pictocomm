@@ -38,6 +38,27 @@ final class LocalChildProfileRepository implements ChildProfileRepository {
     return persisted;
   }
 
+  /// RF3.11: actualiza el perfil (en v1, su foto). Reemplaza por id; si no
+  /// existe, lanza [DataSourceException].
+  @override
+  Future<ChildProfile> updateChild(ChildProfile child) async {
+    final models = [...await dataSource.loadChildren()];
+    final index = models.indexWhere((model) => model.id == child.id);
+    if (index < 0) {
+      throw const DataSourceException('El perfil del niño no existe');
+    }
+    final persisted = ChildProfile(
+      id: models[index].id,
+      name: child.name == models[index].name ? child.name : child.name.trim(),
+      age: child.age,
+      avatarColor: child.avatarColor,
+      photoUrl: child.photoUrl,
+    );
+    models[index] = ChildProfileModel.fromChild(persisted);
+    await dataSource.saveChildren(models);
+    return persisted;
+  }
+
   @override
   Future<void> deleteChild(String id) async {
     final models = [...await dataSource.loadChildren()];

@@ -9,6 +9,7 @@ final class PictoModel {
     required this.source,
     required this.createdAt,
     required this.updatedAt,
+    this.childProfileId,
   });
 
   final String id;
@@ -18,6 +19,7 @@ final class PictoModel {
   final PictoSource source;
   final DateTime createdAt;
   final DateTime updatedAt;
+  final String? childProfileId;
 
   factory PictoModel.fromJson(Map<String, dynamic> json) {
     return PictoModel(
@@ -28,6 +30,7 @@ final class PictoModel {
       source: _parseSource(json['source'] as String),
       createdAt: DateTime.parse(json['createdAt'] as String),
       updatedAt: DateTime.parse(json['updatedAt'] as String),
+      childProfileId: json['childProfileId'] as String?,
     );
   }
 
@@ -40,6 +43,7 @@ final class PictoModel {
       'source': source.name,
       'createdAt': createdAt.toUtc().toIso8601String(),
       'updatedAt': updatedAt.toUtc().toIso8601String(),
+      'childProfileId': childProfileId,
     };
   }
 
@@ -52,6 +56,7 @@ final class PictoModel {
       source: entity.source,
       createdAt: entity.createdAt,
       updatedAt: entity.updatedAt,
+      childProfileId: entity.childProfileId,
     );
   }
 
@@ -64,6 +69,7 @@ final class PictoModel {
       source: source,
       createdAt: createdAt,
       updatedAt: updatedAt,
+      childProfileId: childProfileId,
     );
   }
 

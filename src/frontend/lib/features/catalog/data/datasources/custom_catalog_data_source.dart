@@ -21,6 +21,31 @@ final class CustomCatalogDataSource {
     return _decodePictos(prefs.getString(_pictosKey));
   }
 
+  /// RF3.9: borra la categoría y en cascada sus pictos.
+  Future<void> deleteCategory(String categoryId) async {
+    final prefs = await SharedPreferences.getInstance();
+    final categories = _decodeCategories(prefs.getString(_categoriesKey));
+    final remainingCategories = categories.where((category) => category.id != categoryId).toList();
+    final pictos = _decodePictos(prefs.getString(_pictosKey));
+    final remainingPictos = pictos.where((picto) => picto.categoryId != categoryId).toList();
+    await prefs.setString(_categoriesKey, jsonEncode([
+      for (final category in remainingCategories) CategoryModel.fromEntity(category).toJson(),
+    ]));
+    await prefs.setString(_pictosKey, jsonEncode([
+      for (final picto in remainingPictos) PictoModel.fromEntity(picto).toJson(),
+    ]));
+  }
+
+  /// RF3.8: borra un picto por id. Idempotente.
+  Future<void> deletePicto(String pictoId) async {
+    final prefs = await SharedPreferences.getInstance();
+    final pictos = _decodePictos(prefs.getString(_pictosKey));
+    final remaining = pictos.where((picto) => picto.id != pictoId).toList();
+    await prefs.setString(_pictosKey, jsonEncode([
+      for (final picto in remaining) PictoModel.fromEntity(picto).toJson(),
+    ]));
+  }
+
   Future<Category> saveCategory(Category category) async {
     final prefs = await SharedPreferences.getInstance();
     final stored = _decodeCategories(prefs.getString(_categoriesKey));
@@ -48,6 +73,7 @@ final class CustomCatalogDataSource {
       categoryId: picto.categoryId,
       source: picto.source,
       imageUrl: picto.imageUrl,
+      childProfileId: picto.childProfileId,
       createdAt: picto.createdAt,
       updatedAt: picto.updatedAt,
     );

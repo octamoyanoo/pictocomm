@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -24,18 +26,48 @@ import 'features/profiles/presentation/screens/profile_screen.dart';
 import 'features/voice/domain/voice_provider.dart';
 
 final class AppRouter {
-  const AppRouter(this._dependencies);
+  AppRouter(this._dependencies, SessionProvider session)
+      : _catalogProvider = CatalogProvider(
+          categoryRepository: _dependencies.categoryRepository,
+          pictoRepository: _dependencies.pictoRepository,
+          sessionProvider: session,
+        ),
+        _pictosProvider = PictosProvider(
+          categoryRepository: _dependencies.categoryRepository,
+          pictoRepository: _dependencies.pictoRepository,
+          sessionProvider: session,
+        );
 
   final AppDependencies _dependencies;
 
-  ChangeNotifierProvider<PictosProvider> _pictosRoute(Widget screen) {
-    return ChangeNotifierProvider<PictosProvider>(
-      create: (_) => PictosProvider(
-        categoryRepository: _dependencies.categoryRepository,
-        pictoRepository: _dependencies.pictoRepository,
-      )..load(),
+  /// Providers compartidos entre rutas (ver nota en PictosProvider):
+  /// borrar o crear en una pantalla deja consistentes las demás.
+  final CatalogProvider _catalogProvider;
+  final PictosProvider _pictosProvider;
+
+  ChangeNotifierProvider<CatalogProvider> _catalogRoute(Widget screen) {
+    // La recarga se encola en microtask: llamar load() dentro del build de la
+    // ruta marca listeners durante el build (assert de framework).
+    scheduleMicrotask(_catalogProvider.load);
+    return ChangeNotifierProvider<CatalogProvider>.value(
+      value: _catalogProvider,
       child: screen,
     );
+  }
+
+  ChangeNotifierProvider<PictosProvider> _pictosRoute(Widget screen) {
+    scheduleMicrotask(_pictosProvider.load);
+    return ChangeNotifierProvider<PictosProvider>.value(
+      value: _pictosProvider,
+      child: screen,
+    );
+  }
+
+  /// Al cambiar de chico en el selector, tanto los conteos del home como
+  /// los pictos visibles cambian de dueño (RF3.6): recargar ambos.
+  void reloadAfterSessionChange() {
+    _catalogProvider.load();
+    _pictosProvider.load();
   }
 
   ChangeNotifierProvider<ChildrenProvider> _childrenRoute(Widget screen) {
@@ -54,15 +86,7 @@ final class AppRouter {
       case AppRoutes.childSelector:
         return MaterialPageRoute<void>(builder: (_) => _childrenRoute(const ChildSelectorScreen()));
       case AppRoutes.home:
-        return MaterialPageRoute<void>(
-          builder: (_) => ChangeNotifierProvider<CatalogProvider>(
-            create: (_) => CatalogProvider(
-              categoryRepository: _dependencies.categoryRepository,
-              pictoRepository: _dependencies.pictoRepository,
-            )..load(),
-            child: const HomeScreen(),
-          ),
-        );
+        return MaterialPageRoute<void>(builder: (_) => _catalogRoute(const HomeScreen()));
       case AppRoutes.pictogramas:
         return MaterialPageRoute<void>(builder: (_) => _pictosRoute(const PictogramasScreen()));
       case AppRoutes.comunicar:
@@ -85,27 +109,11 @@ final class AppRouter {
         if (argument is! Picto) {
           return MaterialPageRoute<void>(builder: (_) => const _RouteNotFoundScreen());
         }
-        return MaterialPageRoute<void>(builder: (_) => PictoDetailScreen(picto: argument));
+        return MaterialPageRoute<void>(builder: (_) => _pictosRoute(PictoDetailScreen(picto: argument)));
       case AppRoutes.addCategory:
-        return MaterialPageRoute<void>(
-          builder: (_) => ChangeNotifierProvider<CatalogProvider>(
-            create: (_) => CatalogProvider(
-              categoryRepository: _dependencies.categoryRepository,
-              pictoRepository: _dependencies.pictoRepository,
-            )..load(),
-            child: const AddCategoryScreen(),
-          ),
-        );
+        return MaterialPageRoute<void>(builder: (_) => _catalogRoute(const AddCategoryScreen()));
       case AppRoutes.addPicto:
-        return MaterialPageRoute<void>(
-          builder: (_) => ChangeNotifierProvider<CatalogProvider>(
-            create: (_) => CatalogProvider(
-              categoryRepository: _dependencies.categoryRepository,
-              pictoRepository: _dependencies.pictoRepository,
-            )..load(),
-            child: const AddPictoScreen(),
-          ),
-        );
+        return MaterialPageRoute<void>(builder: (_) => _catalogRoute(const AddPictoScreen()));
       default:
         return MaterialPageRoute<void>(builder: (_) => const _RouteNotFoundScreen());
     }
@@ -132,11 +140,15 @@ final class PictoCommApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final appRouter = AppRouter(dependencies);
+    final session = SessionProvider();
+    final appRouter = AppRouter(dependencies, session);
+    // Al cambiar de chico en el selector, las vistas del catálogo refrescan
+    // para mostrar los pictos de ese chico (RF3.6).
+    session.addListener(appRouter.reloadAfterSessionChange);
     // Sesión activa (RF2.2): el chico elegido sobrevive la navegación entre
     // pestallas porque vive por encima del MaterialApp, no en cada ruta.
-    return ChangeNotifierProvider<SessionProvider>(
-      create: (_) => SessionProvider(),
+    return ChangeNotifierProvider<SessionProvider>.value(
+      value: session,
       child: MaterialApp(
         title: 'PictoComm',
         debugShowCheckedModeBanner: false,

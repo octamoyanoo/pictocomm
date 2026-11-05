@@ -1,8 +1,6 @@
-import 'dart:convert';
-import 'dart:typed_data';
-
 import 'package:flutter/material.dart';
 
+import '../../../../core/utils/data_url.dart';
 import '../../domain/entities/picto.dart';
 
 /// Renderiza la imagen de un pictograma según su fuente, resolviendo el
@@ -40,7 +38,7 @@ final class PictoImage extends StatelessWidget {
   Widget _custom(String url) {
     try {
       return Image.memory(
-        _customBytes(url),
+        DataUrl.decode(url),
         fit: fit,
         width: width,
         height: height,
@@ -49,14 +47,6 @@ final class PictoImage extends StatelessWidget {
     } on FormatException {
       return const _ImagePlaceholder();
     }
-  }
-
-  static Uint8List _customBytes(String url) {
-    final commaIndex = url.indexOf(',');
-    if (!url.startsWith('data:') || commaIndex < 0) {
-      throw const FormatException('La imagen del pictograma no es un data URL válido');
-    }
-    return base64Decode(url.substring(commaIndex + 1));
   }
 }
 

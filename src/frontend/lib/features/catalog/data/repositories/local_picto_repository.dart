@@ -31,19 +31,54 @@ final class LocalPictoRepository implements CategoryRepository, PictoRepository 
       }
     }
     final bundledCategories = categoryIds.map((id) => Category(id: id, name: _humanize(id))).toList();
-    final customCategories = await customDataSource.loadCategories();
+    // Las categorías persistidas siempre son personalizadas (RF3.9).
+    final customCategories = [
+      for (final stored in await customDataSource.loadCategories()) Category(
+        id: stored.id,
+        name: stored.name,
+        color: stored.color,
+        icon: stored.icon,
+        custom: true,
+      ),
+    ];
     return [...bundledCategories, ...customCategories];
   }
 
   @override
-  Future<List<Picto>> getPictos({String? categoryId}) async {
+  Future<List<Picto>> getPictos({String? categoryId, String? childProfileId}) async {
     final bundledPictos = await _bundledPictos();
     final customPictos = await customDataSource.loadPictos();
-    final all = [...bundledPictos, ...customPictos];
+    // RF3.6: con chico activo, la vista incluye los custom sin dueño (RF3.7)
+    // y los de ese chico. Sin filtro, la gestión ve todos.
+    final visibleCustomPictos = childProfileId == null
+        ? customPictos
+        : customPictos.where((picto) => picto.childProfileId == null || picto.childProfileId == childProfileId).toList();
+    final all = [...bundledPictos, ...visibleCustomPictos];
     if (categoryId == null) {
       return all;
     }
     return all.where((picto) => picto.categoryId == categoryId).toList();
+  }  @override
+  Future<void> deletePicto(String id) async {
+    final stored = await customDataSource.loadPictos();
+    final exists = stored.any((picto) => picto.id == id);
+    if (!exists) {
+      throw const DataSourceException('Solo se pueden borrar pictogramas personalizados (RF3.8)');
+    }
+    await customDataSource.deletePicto(id);
+  }
+
+  @override
+  Future<void> deleteCategory(String id) async {
+    final bundledIds = await _bundledCategoryIds();
+    if (bundledIds.contains(id)) {
+      throw const DataSourceException('El catálogo incluido no se puede borrar (RF3.9)');
+    }
+    final stored = await customDataSource.loadCategories();
+    if (!stored.any((category) => category.id == id)) {
+      throw const DataSourceException('La categoría no existe');
+    }
+    await customDataSource.deleteCategory(id);
   }
 
   @override
@@ -70,7 +105,7 @@ final class LocalPictoRepository implements CategoryRepository, PictoRepository 
         throw DuplicateCatalogException('Ya existe una categoría "$name"');
       }
     }
-    return customDataSource.saveCategory(Category(id: id, name: name, color: category.color));
+    return customDataSource.saveCategory(Category(id: id, name: name, color: category.color, custom: true));
   }
 
   @override
@@ -91,10 +126,18 @@ final class LocalPictoRepository implements CategoryRepository, PictoRepository 
         categoryId: picto.categoryId,
         source: PictoSource.custom,
         imageUrl: picto.imageUrl,
+        childProfileId: picto.childProfileId,
         createdAt: now,
         updatedAt: now,
       ),
     );
+  }
+
+  Future<Set<String>> _bundledCategoryIds() async {
+    final assets = await localDataSource.bundledImageAssets();
+    return {
+      for (final asset in assets) ?_assetCategory(asset),
+    };
   }
 
   Future<List<Picto>> _bundledPictos() async {

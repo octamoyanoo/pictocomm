@@ -10,6 +10,7 @@ final class ChildProfileModel {
     required this.name,
     required this.avatarColorValue,
     this.age,
+    this.photoUrl,
   });
 
   final String id;
@@ -19,12 +20,16 @@ final class ChildProfileModel {
   /// Color como ARGB entero: JSON no entiende dart:ui, solo números.
   final int? avatarColorValue;
 
+  /// Foto del niño como data URL (RF3.11).
+  final String? photoUrl;
+
   factory ChildProfileModel.fromChild(ChildProfile child) {
     return ChildProfileModel(
       id: child.id,
       name: child.name,
       age: child.age,
       avatarColorValue: child.avatarColor?.toARGB32(),
+      photoUrl: child.photoUrl,
     );
   }
 
@@ -34,6 +39,7 @@ final class ChildProfileModel {
       name: json['name'] as String,
       age: json['age'] as int?,
       avatarColorValue: json['avatarColorValue'] as int?,
+      photoUrl: json['photoUrl'] as String?,
     );
   }
 
@@ -43,6 +49,7 @@ final class ChildProfileModel {
       name: name,
       age: age,
       avatarColor: avatarColorValue == null ? null : Color(avatarColorValue!),
+      photoUrl: photoUrl,
     );
   }
 
@@ -52,6 +59,7 @@ final class ChildProfileModel {
       'name': name,
       'age': age,
       'avatarColorValue': avatarColorValue,
+      'photoUrl': photoUrl,
     };
   }
 }

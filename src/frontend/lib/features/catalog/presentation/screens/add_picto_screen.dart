@@ -1,10 +1,13 @@
-import 'dart:convert';
-
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 
+import '../../../../core/error/app_exception.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../../../core/utils/data_url.dart';
+import '../../../profiles/presentation/providers/session_provider.dart';
 import '../../domain/entities/category.dart';
 import '../../domain/entities/picto.dart';
 import '../providers/catalog_provider.dart';
@@ -37,10 +40,61 @@ final class _AddPictoScreenState extends State<AddPictoScreen> {
     super.dispose();
   }
 
-  Future<void> _pickImage() async {
+  /// RF3.2: menú de fuentes — galería, cámara (solo móvil) o URL web pegada
+  /// (RF3.3). En todos los casos los bytes terminan guardados en data URL
+  /// local: el picto funciona offline después de crearse.
+  Future<void> _chooseSource() async {
+    final source = await showModalBottomSheet<String>(
+      context: context,
+      backgroundColor: AppColors.surface,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
+      builder: (context) {
+        return SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const SizedBox(height: 8),
+              ListTile(
+                leading: const Icon(Icons.photo_library_outlined, color: AppColors.accent),
+                title: const Text('Galería', style: TextStyle(fontWeight: FontWeight.w600)),
+                onTap: () => Navigator.of(context).pop('gallery'),
+              ),
+              ListTile(
+                enabled: !kIsWeb,
+                leading: Icon(Icons.photo_camera_outlined, color: kIsWeb ? AppColors.textMuted : AppColors.accent),
+                title: const Text('Cámara', style: TextStyle(fontWeight: FontWeight.w600)),
+                subtitle: kIsWeb ? const Text('No disponible en el navegador', style: TextStyle(fontSize: 12)) : null,
+                onTap: kIsWeb ? null : () => Navigator.of(context).pop('camera'),
+              ),
+              ListTile(
+                leading: const Icon(Icons.link, color: AppColors.accent),
+                title: const Text('Pegar URL de imagen', style: TextStyle(fontWeight: FontWeight.w600)),
+                subtitle: const Text('Ej: una imagen de Google Imágenes', style: TextStyle(fontSize: 12)),
+                onTap: () => Navigator.of(context).pop('url'),
+              ),
+              const SizedBox(height: 8),
+            ],
+          ),
+        );
+      },
+    );
+    if (source == null || !mounted) {
+      return;
+    }
+    switch (source) {
+      case 'gallery':
+        await _pickImage(ImageSource.gallery);
+      case 'camera':
+        await _pickImage(ImageSource.camera);
+      case 'url':
+        await _promptImageUrl();
+    }
+  }
+
+  Future<void> _pickImage(ImageSource source) async {
     setState(() => _loadingImage = true);
     try {
-      final picked = await _picker.pickImage(source: ImageSource.gallery, maxWidth: 600, imageQuality: 70);
+      final picked = await _picker.pickImage(source: source, maxWidth: 600, imageQuality: 70);
       if (!mounted) {
         return;
       }
@@ -52,9 +106,8 @@ final class _AddPictoScreenState extends State<AddPictoScreen> {
       if (!mounted) {
         return;
       }
-      final mime = _mimeOf(picked.name);
       setState(() {
-        _imageDataUrl = 'data:$mime;base64,${base64Encode(bytes)}';
+        _imageDataUrl = DataUrl.encode(bytes, _mimeOf(picked.name));
         _loadingImage = false;
         _errorText = null;
       });
@@ -65,6 +118,40 @@ final class _AddPictoScreenState extends State<AddPictoScreen> {
       setState(() {
         _loadingImage = false;
         _errorText = 'No se pudo cargar la imagen';
+      });
+    }
+  }
+
+  /// RF3.3: descarga la imagen de la URL y la guarda local. Si el host
+  /// bloquea la descarga desde el navegador, guía hacia la galería.
+  Future<void> _promptImageUrl() async {
+    final url = await showDialog<String>(
+      context: context,
+      builder: (_) => const _ImageUrlDialog(),
+    );
+    if (url == null || url.trim().isEmpty || !mounted) {
+      return;
+    }
+    setState(() => _loadingImage = true);
+    try {
+      final response = await http.get(Uri.parse(url.trim())).timeout(const Duration(seconds: 15));
+      if (response.statusCode != 200) {
+        throw const DataSourceException('La imagen no se pudo descargar');
+      }
+      final mime = (response.headers['content-type'] ?? 'image/jpeg').split(';').first;
+      setState(() {
+        _imageDataUrl = DataUrl.encode(response.bodyBytes, mime);
+        _loadingImage = false;
+        _errorText = null;
+      });
+    } on Object {
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _loadingImage = false;
+        _errorText = 'No se pudo descargar la imagen (el sitio puede bloquearlo). '
+            'Guardala en el dispositivo y elegila desde la galería.';
       });
     }
   }
@@ -83,6 +170,11 @@ final class _AddPictoScreenState extends State<AddPictoScreen> {
   Future<void> _save() async {
     final label = _labelController.text.trim();
     final categoryId = _categoryId;
+    final childId = context.read<SessionProvider>().activeChild?.id;
+    if (childId == null) {
+      setState(() => _errorText = 'Elegí primero un niño en "Cambiar de niño" (RF3.4)');
+      return;
+    }
     if (label.isEmpty) {
       setState(() => _errorText = 'Ingresá un nombre');
       return;
@@ -107,6 +199,7 @@ final class _AddPictoScreenState extends State<AddPictoScreen> {
         categoryId: categoryId,
         source: PictoSource.custom,
         imageUrl: _imageDataUrl,
+        childProfileId: childId,
         createdAt: now,
         updatedAt: now,
       );
@@ -145,7 +238,7 @@ final class _AddPictoScreenState extends State<AddPictoScreen> {
                     _ImagePickerTile(
                       imageDataUrl: _imageDataUrl,
                       loading: _loadingImage,
-                      onPick: _pickImage,
+                      onPick: _chooseSource,
                     ),
                     const SizedBox(height: 24),
                     const Align(
@@ -254,7 +347,7 @@ final class _ImagePickerTile extends StatelessWidget {
                     )
                   : ClipRRect(
                       borderRadius: BorderRadius.circular(18),
-                      child: Image.memory(base64Decode(imageDataUrl!.split(',').last), fit: BoxFit.cover),
+                      child: Image.memory(DataUrl.decode(imageDataUrl!), fit: BoxFit.cover),
                     ),
         ),
       ),
@@ -282,6 +375,49 @@ final class _AddScreenHeader extends StatelessWidget {
           Text(title, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w700, color: AppColors.textPrimary)),
         ],
       ),
+    );
+  }
+}
+
+final class _ImageUrlDialog extends StatefulWidget {
+  const _ImageUrlDialog();
+
+  @override
+  State<_ImageUrlDialog> createState() => _ImageUrlDialogState();
+}
+
+final class _ImageUrlDialogState extends State<_ImageUrlDialog> {
+  final _urlController = TextEditingController();
+
+  @override
+  void dispose() {
+    _urlController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text('Imagen desde la web'),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Text(
+            'En Google Imágenes: mantené apretada la imagen → "Copiar dirección de imagen" y pegala acá.',
+            style: TextStyle(fontSize: 13, color: AppColors.textSecondary),
+          ),
+          const SizedBox(height: 12),
+          TextField(
+            controller: _urlController,
+            autofocus: true,
+            decoration: const InputDecoration(hintText: 'https://...'),
+          ),
+        ],
+      ),
+      actions: [
+        TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('Cancelar')),
+        TextButton(onPressed: () => Navigator.of(context).pop(_urlController.text), child: const Text('Descargar')),
+      ],
     );
   }
 }

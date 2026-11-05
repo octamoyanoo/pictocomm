@@ -34,9 +34,21 @@ final class FakeCategoryRepository implements CategoryRepository {
       name: name,
       color: category.color,
       icon: category.icon,
+      custom: true,
     );
     _categories.add(persisted);
     return persisted;
+  }
+
+  /// RF3.9: borra la categoría solo si es custom (en fakes, todo lo de la
+  /// lista lo es, salvo las seeded explicitas con custom false).
+  @override
+  Future<void> deleteCategory(String id) async {
+    final stored = _categories.where((category) => category.id == id).firstOrNull;
+    if (stored == null || !stored.custom) {
+      throw const DataSourceException('La categoría no es borrable o no existe');
+    }
+    _categories.removeWhere((category) => category.id == id);
   }
 }
 
@@ -48,11 +60,16 @@ final class FakePictoRepository implements PictoRepository {
   List<Picto> get pictos => List.unmodifiable(_pictos);
 
   @override
-  Future<List<Picto>> getPictos({String? categoryId}) async {
+  Future<List<Picto>> getPictos({String? categoryId, String? childProfileId}) async {
+    // RF3.6: con chico activo, los custom sin dueño siguen visibles (RF3.7);
+    // los owned solo su dueño. Sin filtro, la gestión ve todo.
+    final visible = childProfileId == null
+        ? _pictos
+        : _pictos.where((picto) => picto.source == PictoSource.bundled || picto.childProfileId == null || picto.childProfileId == childProfileId).toList();
     if (categoryId == null) {
-      return _pictos;
+      return visible;
     }
-    return _pictos.where((p) => p.categoryId == categoryId).toList();
+    return visible.where((p) => p.categoryId == categoryId).toList();
   }
 
   @override
@@ -81,11 +98,22 @@ final class FakePictoRepository implements PictoRepository {
       categoryId: picto.categoryId,
       source: PictoSource.custom,
       imageUrl: picto.imageUrl,
+      childProfileId: picto.childProfileId,
       createdAt: now,
       updatedAt: now,
     );
     _pictos.add(persisted);
     return persisted;
+  }
+
+  /// RF3.8: solo custom. El incluido (bundled) no se borra.
+  @override
+  Future<void> deletePicto(String id) async {
+    final stored = _pictos.where((picto) => picto.id == id).firstOrNull;
+    if (stored == null || stored.source != PictoSource.custom) {
+      throw const DataSourceException('Solo se pueden borrar pictogramas personalizados');
+    }
+    _pictos.removeWhere((picto) => picto.id == id);
   }
 }
 
@@ -165,6 +193,16 @@ final class FakeChildProfileRepository implements ChildProfileRepository {
     );
     _children.add(persisted);
     return persisted;
+  }
+
+  @override
+  Future<ChildProfile> updateChild(ChildProfile child) async {
+    final index = _children.indexWhere((element) => element.id == child.id);
+    if (index < 0) {
+      throw const DataSourceException('El perfil del niño no existe');
+    }
+    _children[index] = child;
+    return child;
   }
 
   @override

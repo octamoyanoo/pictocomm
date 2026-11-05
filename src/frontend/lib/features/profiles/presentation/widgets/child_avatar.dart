@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 
 import '../../../../core/theme/app_theme.dart';
+import '../../../../core/utils/data_url.dart';
 import '../../domain/entities/child_profile.dart';
 
-/// Avatar de perfil de niño (RF2.6): círculo con inicial, color del perfil.
-/// La foto (RF2.12) reemplazará este widget cuando exista.
+/// Avatar de perfil de niño (RF2.6/RF3.11): foto real si existe, con
+/// fallback al círculo de color con inicial.
 final class ChildAvatar extends StatelessWidget {
   const ChildAvatar({required this.child, this.radius = 24, super.key});
 
@@ -13,6 +14,18 @@ final class ChildAvatar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final photoUrl = child.photoUrl;
+    if (photoUrl != null && photoUrl.isNotEmpty) {
+      try {
+        return CircleAvatar(
+          radius: radius,
+          backgroundColor: child.avatarColor ?? AppColors.accent,
+          backgroundImage: MemoryImage(DataUrl.decode(photoUrl)),
+        );
+      } on FormatException {
+        // Foto corrupta: cae al avatar de color, nunca rompe la pantalla.
+      }
+    }
     return CircleAvatar(
       radius: radius,
       backgroundColor: child.avatarColor ?? AppColors.accent,

@@ -20,7 +20,11 @@ void main() {
     expect(entity.icon, 'cup');
 
     final json = model.toJson();
-    expect(json, {'id': 'bebidas', 'name': 'Bebidas', 'color': '#4fc3f7', 'icon': 'cup'});
+    expect(json, {'id': 'bebidas', 'name': 'Bebidas', 'color': '#4fc3f7', 'icon': 'cup', 'custom': false});
+
+    // RF3.9: la categoría persistida es custom; el roundtrip conserva el flag.
+    final persistedEntity = const CategoryModel(id: 'talleres', name: 'Talleres', color: 0xFF4FC3F7, icon: 'category', custom: true).toEntity();
+    expect(persistedEntity.custom, isTrue);
   });
 
   test('PictoModel roundtrip JSON <-> entidad', () {

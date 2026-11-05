@@ -7,9 +7,13 @@ import '../entities/child_profile.dart';
 abstract interface class ChildProfileRepository {
   Future<List<ChildProfile>> getChildren();
 
-  /// Crea y persiste un perfil nuevo. Asigna id y completa defaults.
+  /// Crea el perfil y devuelve la versión persistida (con id resuelto).
   /// Lanza [DataSourceException] si el nombre queda vacío.
   Future<ChildProfile> createChild(ChildProfile child);
+
+  /// Actualiza el perfil persistido (RF3.11: la foto). Devuelve la versión
+  /// persistida. Lanza [DataSourceException] si el perfil no existe.
+  Future<ChildProfile> updateChild(ChildProfile child);
 
   /// Borra el perfil (RF2.7: la confirmación doble es responsabilidad
   /// de la presentación, no del repositorio). Idempotente: borrar un id

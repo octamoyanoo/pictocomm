@@ -8,6 +8,7 @@ final class CategoryModel {
     required this.name,
     required this.color,
     required this.icon,
+    this.custom = false,
   });
 
   final String id;
@@ -15,17 +16,21 @@ final class CategoryModel {
   final int color;
   final String icon;
 
+  /// RF3.9: las categorías persistidas (creadas por el adulto) son custom.
+  final bool custom;
+
   factory CategoryModel.fromJson(Map<String, dynamic> json) {
     return CategoryModel(
       id: json['id'] as String,
       name: json['name'] as String,
       color: _parseColor(json['color'] as String),
       icon: json['icon'] as String,
+      custom: json['custom'] as bool? ?? false,
     );
   }
 
   Map<String, dynamic> toJson() {
-    return <String, dynamic>{'id': id, 'name': name, 'color': formatColor(color), 'icon': icon};
+    return <String, dynamic>{'id': id, 'name': name, 'color': formatColor(color), 'icon': icon, 'custom': custom};
   }
 
   factory CategoryModel.fromEntity(Category entity) {
@@ -34,11 +39,12 @@ final class CategoryModel {
       name: entity.name,
       color: entity.color?.toARGB32() ?? 0xFF7C5CBF,
       icon: entity.icon ?? 'category',
+      custom: entity.custom,
     );
   }
 
   Category toEntity() {
-    return Category(id: id, name: name, color: Color(color), icon: icon);
+    return Category(id: id, name: name, color: Color(color), icon: icon, custom: custom);
   }
 
   static int _parseColor(String hex) {

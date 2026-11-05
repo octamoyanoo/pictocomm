@@ -1,7 +1,10 @@
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 
 import '../../../../core/theme/app_theme.dart';
+import '../../../../core/utils/data_url.dart';
 import '../../../../core/widgets/app_bottom_nav.dart';
 import '../../domain/entities/child_profile.dart';
 import '../providers/children_provider.dart';
@@ -19,9 +22,9 @@ final class ProfileScreen extends StatefulWidget {
 final class _ProfileScreenState extends State<ProfileScreen> {
 
   Future<void> _addChild() async {
-    final newChild = await showDialog<(String, int?)>(
+    final newChild = await showDialog<(String, int?, String?)>(
       context: context,
-      builder: (_) => const _AddChildDialog(),
+      builder: (_) => const AddChildDialog(),
     );
     if (newChild == null) {
       return;
@@ -29,7 +32,7 @@ final class _ProfileScreenState extends State<ProfileScreen> {
     if (!mounted) {
       return;
     }
-    await context.read<ChildrenProvider>().createChild(newChild.$1, null, newChild.$2);
+    await context.read<ChildrenProvider>().createChild(newChild.$1, null, newChild.$2, newChild.$3);
   }
 
   Future<void> _deleteChild(ChildProfile child) async {
@@ -181,18 +184,21 @@ final class _ChildTile extends StatelessWidget {
   }
 }
 
-/// Crear perfil (RF2.6): nombre + color de avatar de paleta fija.
-final class _AddChildDialog extends StatefulWidget {
-  const _AddChildDialog();
+/// Crear perfil (RF2.6 + RF3.11): nombre, avatar de paleta fija y foto opcional.
+final class AddChildDialog extends StatefulWidget {
+  const AddChildDialog({super.key});
 
   @override
-  State<_AddChildDialog> createState() => _AddChildDialogState();
+  State<AddChildDialog> createState() => _AddChildDialogState();
 }
 
-final class _AddChildDialogState extends State<_AddChildDialog> {
+final class _AddChildDialogState extends State<AddChildDialog> {
   final _nameController = TextEditingController();
 
+  final ImagePicker _picker = ImagePicker();
+
   int _selectedIndex = 0;
+  String? _photoDataUrl;
 
   @override
   void dispose() {
@@ -205,7 +211,51 @@ final class _AddChildDialogState extends State<_AddChildDialog> {
     if (name.isEmpty) {
       return;
     }
-    Navigator.of(context).pop((name, AppColors.avatarPalette[_selectedIndex].toARGB32()));
+    Navigator.of(context).pop((name, AppColors.avatarPalette[_selectedIndex].toARGB32(), _photoDataUrl));
+  }
+
+  /// RF3.11: foto opcional del chico. Cámara solo en móvil.
+  Future<void> _pickPhoto() async {
+    final source = await showModalBottomSheet<ImageSource>(
+      context: context,
+      backgroundColor: AppColors.surface,
+      builder: (context) {
+        return SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const SizedBox(height: 8),
+              ListTile(
+                leading: const Icon(Icons.photo_library_outlined, color: AppColors.accent),
+                title: const Text('Galería'),
+                onTap: () => Navigator.of(context).pop(ImageSource.gallery),
+              ),
+              ListTile(
+                enabled: !kIsWeb,
+                leading: Icon(Icons.photo_camera_outlined, color: kIsWeb ? AppColors.textMuted : AppColors.accent),
+                title: const Text('Cámara'),
+                onTap: kIsWeb ? null : () => Navigator.of(context).pop(ImageSource.camera),
+              ),
+              const SizedBox(height: 8),
+            ],
+          ),
+        );
+      },
+    );
+    if (source == null) {
+      return;
+    }
+    try {
+      final picked = await _picker.pickImage(source: source, maxWidth: 400, imageQuality: 70);
+      if (picked == null) {
+        return;
+      }
+      final bytes = await picked.readAsBytes();
+      final mime = picked.name.toLowerCase().endsWith('.png') ? 'image/png' : 'image/jpeg';
+      setState(() => _photoDataUrl = DataUrl.encode(bytes, mime));
+    } on Object {
+      // Sin foto: el avatar cae al círculo de color (RF3.11).
+    }
   }
 
   @override
@@ -215,6 +265,26 @@ final class _AddChildDialogState extends State<_AddChildDialog> {
       content: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
+          GestureDetector(
+            onTap: _pickPhoto,
+            child: Stack(
+              alignment: Alignment.center,
+              children: [
+                if (_photoDataUrl == null)
+                  const CircleAvatar(
+                    radius: 36,
+                    backgroundColor: AppColors.accentLight,
+                    child: Icon(Icons.add_a_photo_outlined, color: AppColors.accent),
+                  )
+                else
+                  CircleAvatar(
+                    radius: 36,
+                    backgroundImage: MemoryImage(DataUrl.decode(_photoDataUrl!)),
+                  ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 12),
           TextField(
             controller: _nameController,
             autofocus: true,

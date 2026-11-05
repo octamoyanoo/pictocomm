@@ -12,6 +12,7 @@ final class Picto {
     required this.createdAt,
     required this.updatedAt,
     this.imageUrl,
+    this.childProfileId,
   });
 
   final String id;
@@ -21,4 +22,10 @@ final class Picto {
   final String? imageUrl;
   final DateTime createdAt;
   final DateTime updatedAt;
+
+  /// Dueño del picto (RF3.4): los personalizados pertenecen al perfil del
+  /// niño activo; el catálogo incluido es `null` porque lo ve cualquier
+  /// chico del dispositivo (RF3.5). Los custom previos a RF3 quedan en
+  /// `null` y permanecen visibles para todos (RF3.7).
+  final String? childProfileId;
 }
