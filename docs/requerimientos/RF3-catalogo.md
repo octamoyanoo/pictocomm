@@ -56,3 +56,6 @@ integrado de Google queda para el backend, v2); sí a la **foto del niño**
 - `Picto.childProfileId` nullable: `bundled` siempre `null`; `custom` lleva su chico; `remote` (futuro) lo definirá el backend.
 - La descarga de URL usa `http` (funciona en web vía cors del navegador; en móvil sin restricción).
 - Categoría custom viaja con flag `custom` del lado de presentación/persistencia: las **incluídas** no se borran (RF3.8) y quedan solo lectura.
+- Cascada del borrado de categoría (RF3.9): con sesión activa se depuran **solo los pictos con dueño == chico activo**; los de otro chico y los legacy sin dueño (RF3.7) sobreviven. Los sobrevivientes quedan sin categoría visible hasta que el catálogo se recree con el mismo nombre (slug) o se agregue edición (v2).
+- Borrado de picto (RF3.8): el repositorio valida con el chico de la sesión activa que el picto sea suyo; sin sesión (modo gestión) borra cualquier custom. La papelera del detalle solo se muestra al dueño.
+- Borrar un perfil purga sus pictos (RF2.7): el wiring es por composición en `core/di` (`purgePictosForChild`), sin dependencia cross-feature.

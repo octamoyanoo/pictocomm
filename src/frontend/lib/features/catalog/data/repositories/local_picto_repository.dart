@@ -20,6 +20,9 @@ final class LocalPictoRepository implements CategoryRepository, PictoRepository 
 
   final RemoteCatalogDataSource remoteDataSource;
 
+  /// Ids únicos aunque dos creaciones caigan en el mismo microsegundo.
+  static int _idCounter = 0;
+
   @override
   Future<List<Category>> getCategories() async {
     final assets = await localDataSource.bundledImageAssets();
@@ -58,18 +61,31 @@ final class LocalPictoRepository implements CategoryRepository, PictoRepository 
       return all;
     }
     return all.where((picto) => picto.categoryId == categoryId).toList();
-  }  @override
-  Future<void> deletePicto(String id) async {
+  }
+
+  @override
+  Future<void> deletePicto(String id, {String? childProfileId}) async {
     final stored = await customDataSource.loadPictos();
-    final exists = stored.any((picto) => picto.id == id);
-    if (!exists) {
+    final target = stored.where((picto) => picto.id == id).firstOrNull;
+    if (target == null) {
       throw const DataSourceException('Solo se pueden borrar pictogramas personalizados (RF3.8)');
+    }
+    // RF3.6/RF3.8: con sesión activa, no se puede borrar el picto de otro
+    // chico. Los custom sin dueño (RF3.7) siguen borrables desde gestión.
+    final activeChild = childProfileId;
+    if (activeChild != null && target.childProfileId != null && target.childProfileId != activeChild) {
+      throw const DataSourceException('El pictograma pertenece a otro chico (RF3.8)');
     }
     await customDataSource.deletePicto(id);
   }
 
   @override
-  Future<void> deleteCategory(String id) async {
+  Future<void> deletePictosForChild(String childProfileId) async {
+    await customDataSource.deletePictosForChild(childProfileId);
+  }
+
+  @override
+  Future<void> deleteCategory(String id, {String? childProfileId}) async {
     final bundledIds = await _bundledCategoryIds();
     if (bundledIds.contains(id)) {
       throw const DataSourceException('El catálogo incluido no se puede borrar (RF3.9)');
@@ -78,7 +94,7 @@ final class LocalPictoRepository implements CategoryRepository, PictoRepository 
     if (!stored.any((category) => category.id == id)) {
       throw const DataSourceException('La categoría no existe');
     }
-    await customDataSource.deleteCategory(id);
+    await customDataSource.deleteCategory(id, childProfileId: childProfileId);
   }
 
   @override
@@ -118,7 +134,7 @@ final class LocalPictoRepository implements CategoryRepository, PictoRepository 
       throw const DataSourceException('Elegí una imagen para el pictograma');
     }
     final now = DateTime.now().toUtc();
-    final id = 'custom-${now.microsecondsSinceEpoch}';
+    final id = 'custom-${now.microsecondsSinceEpoch}-${_idCounter++}';
     return customDataSource.savePicto(
       Picto(
         id: id,

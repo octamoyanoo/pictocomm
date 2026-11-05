@@ -80,15 +80,17 @@ final class CatalogProvider extends ChangeNotifier {
     return created;
   }
 
-  /// RF3.8: borra un picto personalizado y recarga los conteos.
+  /// RF3.8: borra un picto personalizado y recarga los conteos. Con sesión
+  /// activa, el repositorio valida que el picto sea del chico activo.
   Future<void> deletePicto(String id) async {
-    await pictoRepository.deletePicto(id);
+    await pictoRepository.deletePicto(id, childProfileId: sessionProvider.activeChild?.id);
     await load();
   }
 
-  /// RF3.9: borra una categoría personalizada (cascada) y recarga.
+  /// RF3.9: borra una categoría personalizada (cascada del chico activo) y
+  /// recarga.
   Future<void> deleteCategory(String id) async {
-    await categoryRepository.deleteCategory(id);
+    await categoryRepository.deleteCategory(id, childProfileId: sessionProvider.activeChild?.id);
     await load();
   }
 }

@@ -47,4 +47,6 @@ se abre **para un chico específico**.
 ## Notas de implementación (no normativas)
 
 - `SessionProvider` (presentation/providers) guarda el chico activo a nivel `MaterialApp`; no se persiste (cada apertura arranca en selector).
-- Los tests usan `FakeChildProfileRepository` en memoria con el mismo contrato.
+- Borrar perfil (RF2.7) también purga los pictos personalizados del chico: la cascade la inyecta el composition root (`purgePictosForChild` en `LocalChildProfileRepository`), para no acoplar la feature profiles al catálogo.
+- Los ids de perfiles/pictos se generan con contador además del timestamp: dos creaciones en el mismo microsegundo no colisionan (lo detectó la cascada en test).
+- Los tests usan `FakeChildProfileRepository` en memoria con el mismo contrato (incluye la cascada inyectable y la foto).

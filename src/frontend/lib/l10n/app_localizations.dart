@@ -670,18 +670,6 @@ abstract class AppLocalizations {
   /// **'No hay niños cargados todavía'**
   String get noChildrenYet;
 
-  /// No description provided for @accountSection.
-  ///
-  /// In es, this message translates to:
-  /// **'Mi cuenta'**
-  String get accountSection;
-
-  /// No description provided for @signOut.
-  ///
-  /// In es, this message translates to:
-  /// **'Cerrar sesión'**
-  String get signOut;
-
   /// No description provided for @deleteProfileTooltip.
   ///
   /// In es, this message translates to:

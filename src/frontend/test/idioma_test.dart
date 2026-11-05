@@ -47,7 +47,6 @@ void main() {
     expect(find.text('Language'), findsOneWidget);
     expect(find.text('Profile'), findsWidgets);
     expect(find.text('Children'), findsOneWidget);
-    expect(find.text('Sign out'), findsOneWidget);
   });
 
   testWidgets('portugués cubre la pantalla de gestión sin restos en español (RF4.8)', (tester) async {

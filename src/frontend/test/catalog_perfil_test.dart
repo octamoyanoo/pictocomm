@@ -19,7 +19,7 @@ void main() {
     remoteDataSource: const UnimplementedRemoteCatalogDataSource(),
   );
 
-  Picto childPicto(String label, String categoryId, String childId) {
+  Picto childPicto(String label, String categoryId, String? childId) {
     final now = DateTime.now().toUtc();
     return Picto(
       id: '',
@@ -63,6 +63,32 @@ void main() {
     expect(pictos.isEmpty, isTrue);
   });
 
+  test('RF3.9: la cascada por chico solo borra los pictos DE ESE niño', () async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+
+    final category = await repository.createCategory(const Category(id: '', name: 'Verano'));
+    await repository.createPicto(childPicto('pileta', category.id, 'nina'));
+    await repository.createPicto(childPicto('helado-nina', category.id, 'nina'));
+    // Otro chico con pictos en la MISMA categoría, y un legacy sin dueño.
+    await repository.createPicto(childPicto('caramelo-benja', category.id, 'benja'));
+    await repository.createPicto(childPicto('changuito-viejo', category.id, null));
+
+    // El adulto borra el catálogo con la sesión de nina activa.
+    await repository.deleteCategory(category.id, childProfileId: 'nina');
+
+    // La categoría sale del listado...
+    final categories = await repository.getCategories();
+    expect(categories.any((stored) => stored.id == category.id), isFalse);
+    // ...los pictos PROPIOS de nina de esa categoría se purgan...
+    final ninaPictos = await repository.getPictos(childProfileId: 'nina');
+    expect(ninaPictos.any((picto) => picto.label == 'pileta'), isFalse);
+    expect(ninaPictos.any((picto) => picto.label == 'helado-nina'), isFalse);
+    // ...y lo ajeno no se toca: el de benja y el legacy sigue visible (RF3.7).
+    expect(ninaPictos.any((picto) => picto.label == 'changuito-viejo'), isTrue);
+    expect((await repository.getPictos(childProfileId: 'benja')).any((picto) => picto.label == 'caramelo-benja'), isTrue);
+    expect((await repository.getPictos(childProfileId: 'benja')).any((picto) => picto.label == 'changuito-viejo'), isTrue);
+  });
+
   test('RF3.8: el pictograma incluido no se puede borrar', () async {
     SharedPreferences.setMockInitialValues(<String, Object>{});
 
@@ -90,6 +116,23 @@ void main() {
 
     await repository.deletePicto(created.id);
 
+    expect(await repository.getPictos(childProfileId: 'nina'), isEmpty);
+  });
+
+  test('RF3.8: con sesión activa no se puede borrar el picto de otro chico', () async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+
+    final created = await repository.createPicto(childPicto('banana-casa-nina', 'alimentos', 'nina'));
+
+    // Sesión de benja: el picto de nina no se toca.
+    await expectLater(
+      repository.deletePicto(created.id, childProfileId: 'benja'),
+      throwsA(isA<DataSourceException>()),
+    );
+    expect((await repository.getPictos(childProfileId: 'nina')), hasLength(1));
+
+    // Sesión correcta: borra normal.
+    await repository.deletePicto(created.id, childProfileId: 'nina');
     expect(await repository.getPictos(childProfileId: 'nina'), isEmpty);
   });
 }

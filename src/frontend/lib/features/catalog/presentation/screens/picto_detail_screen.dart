@@ -13,6 +13,14 @@ final class PictoDetailScreen extends StatelessWidget {
 
   final Picto picto;
 
+  /// RF3.6/RF3.8: la papelera solo aparece para un picto custom del chico
+  /// activo (o de cualquiera en gestión sin sesión). El repositorio también
+  /// valida por si el estado cambió entre build y tap.
+  bool _allowsDelete(BuildContext context) {
+    final activeChildId = context.read<PictosProvider>().sessionProvider.activeChild?.id;
+    return activeChildId == null || picto.childProfileId == null || picto.childProfileId == activeChildId;
+  }
+
   Future<void> _confirmDelete(BuildContext context) async {
     final provider = context.read<PictosProvider>();
     final l10n = AppLocalizations.of(context)!;
@@ -81,8 +89,9 @@ final class PictoDetailScreen extends StatelessWidget {
                   child: PictoImage(picto: picto, fit: BoxFit.contain),
                 ),
               ),
-              // RF3.8: solo los pictos personalizados son borrables.
-              if (picto.source == PictoSource.custom)
+              // RF3.8: solo los pictos personalizados son borrables, y solo
+              // el dueño (o gestión sin sesión) ve la papelera.
+              if (picto.source == PictoSource.custom && _allowsDelete(context))
                 TextButton.icon(
                   onPressed: () => _confirmDelete(context),
                   icon: const Icon(Icons.delete_outline, color: AppColors.error),

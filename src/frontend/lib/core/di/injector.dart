@@ -32,8 +32,11 @@ final class AppDependencies {
     return AppDependencies(
       categoryRepository: localPictoRepository,
       pictoRepository: localPictoRepository,
-      childProfileRepository: const LocalChildProfileRepository(
+      childProfileRepository: LocalChildProfileRepository(
         dataSource: LocalChildProfileDataSource(),
+        // RF2.7: borrar un perfil purga sus pictos personalizados en la misma
+        // operación (cascada por composición, sin dependencia entre features).
+        purgePictosForChild: localPictoRepository.deletePictosForChild,
       ),
       // Voz v1 (RF1.10): TTS del sistema. El día que se pase al modo híbrido
       // (RF1.11) se reemplaza esta línea, sin tocar pantallas ni providers.

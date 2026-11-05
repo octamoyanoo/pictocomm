@@ -9,7 +9,9 @@ abstract interface class CategoryRepository {
   Future<Category> createCategory(Category category);
 
   /// Borra una categoría (RF3.9): solo personalizadas, y elimina en cascada
-  /// sus pictos. Lanza [DataSourceException] si la categoría no es borrable
-  /// (incluida) o no existe.
-  Future<void> deleteCategory(String id);
+  /// **solo los pictos de ese chico** en ella ([childProfileId], con sesión
+  /// activa). Sin sesión, la cascada elimina los pictos de la categoría.
+  /// Lanza [DataSourceException] si la categoría no es borrable (incluida) o
+  /// no existe.
+  Future<void> deleteCategory(String id, {String? childProfileId});
 }

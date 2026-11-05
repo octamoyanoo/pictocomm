@@ -326,12 +326,6 @@ class AppLocalizationsPt extends AppLocalizations {
   String get noChildrenYet => 'Ainda não há crianças cadastradas';
 
   @override
-  String get accountSection => 'Minha conta';
-
-  @override
-  String get signOut => 'Encerrar sessão';
-
-  @override
   String get deleteProfileTooltip => 'Excluir perfil';
 
   @override

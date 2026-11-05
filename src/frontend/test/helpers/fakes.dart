@@ -41,9 +41,11 @@ final class FakeCategoryRepository implements CategoryRepository {
   }
 
   /// RF3.9: borra la categoría solo si es custom (en fakes, todo lo de la
-  /// lista lo es, salvo las seeded explicitas con custom false).
+  /// lista lo es, salvo las seeded explicitas con custom false). El
+  /// [childProfileId] se ignora a proposito: la cascada por chico vive en el
+  /// datasource real (los fakes no comparten storage con pictos).
   @override
-  Future<void> deleteCategory(String id) async {
+  Future<void> deleteCategory(String id, {String? childProfileId}) async {
     final stored = _categories.where((category) => category.id == id).firstOrNull;
     if (stored == null || !stored.custom) {
       throw const DataSourceException('La categoría no es borrable o no existe');
@@ -106,15 +108,31 @@ final class FakePictoRepository implements PictoRepository {
     return persisted;
   }
 
-  /// RF3.8: solo custom. El incluido (bundled) no se borra.
+  /// RF3.8: solo custom y, con dueño, solo el chico activo lo borra.
   @override
-  Future<void> deletePicto(String id) async {
+  Future<void> deletePicto(String id, {String? childProfileId}) async {
     final stored = _pictos.where((picto) => picto.id == id).firstOrNull;
     if (stored == null || stored.source != PictoSource.custom) {
       throw const DataSourceException('Solo se pueden borrar pictogramas personalizados');
     }
+    if (childProfileId != null && stored.childProfileId != null && stored.childProfileId != childProfileId) {
+      throw const DataSourceException('El pictograma pertenece a otro chico');
+    }
     _pictos.removeWhere((picto) => picto.id == id);
   }
+
+  /// RF2.7: purge de todos los pictos del chico. Registra los purgados para
+  /// que los tests puedan asertar la cascada.
+  @override
+  Future<void> deletePictosForChild(String childProfileId) async {
+    _purgedChildIds.add(childProfileId);
+    _pictos.removeWhere((picto) => picto.childProfileId == childProfileId);
+  }
+
+  final List<String> _purgedChildIds = [];
+
+  /// Ids de chicos pasados por `deletePictosForChild`, en orden.
+  List<String> get purgedChildIds => List.unmodifiable(_purgedChildIds);
 }
 
 final class ExplodingRemoteDataSource implements RemoteCatalogDataSource {
@@ -170,9 +188,15 @@ final class FakeVoiceProvider implements VoiceProvider {
 }
 
 final class FakeChildProfileRepository implements ChildProfileRepository {
-  FakeChildProfileRepository({List<ChildProfile> children = const <ChildProfile>[]}) : _children = [...children];
+  FakeChildProfileRepository({
+    List<ChildProfile> children = const <ChildProfile>[],
+    this.purgePictosForChild,
+  }) : _children = [...children];
 
   final List<ChildProfile> _children;
+
+  /// RF2.7: cascada inyectada, igual que el repo real (misma firma).
+  final Future<void> Function(String childId)? purgePictosForChild;
 
   List<ChildProfile> get children => List.unmodifiable(_children);
 
@@ -190,6 +214,8 @@ final class FakeChildProfileRepository implements ChildProfileRepository {
       name: name,
       age: child.age,
       avatarColor: child.avatarColor,
+      // El contrato real persiste la foto (RF3.11); el fake también.
+      photoUrl: child.photoUrl,
     );
     _children.add(persisted);
     return persisted;
@@ -208,6 +234,8 @@ final class FakeChildProfileRepository implements ChildProfileRepository {
   @override
   Future<void> deleteChild(String id) async {
     _children.removeWhere((child) => child.id == id);
+    // RF2.7: cascada espejo del repo real.
+    await purgePictosForChild?.call(id);
   }
 }
 

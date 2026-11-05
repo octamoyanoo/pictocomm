@@ -5,9 +5,20 @@ import '../datasources/local_child_profile_data_source.dart';
 import '../models/child_profile_model.dart';
 
 final class LocalChildProfileRepository implements ChildProfileRepository {
-  const LocalChildProfileRepository({required this.dataSource});
+  const LocalChildProfileRepository({
+    required this.dataSource,
+    this.purgePictosForChild,
+  });
 
   final LocalChildProfileDataSource dataSource;
+
+  /// Ids únicos aunque dos creaciones caigan en el mismo microsegundo.
+  static int _idCounter = 0;
+
+  /// RF2.7 (cascada): al borrar un perfil, sus pictos personalizados van con
+  /// él. El wiring vive en el composition root (sin dependencia cruzada de
+  /// features: el catálogo inyecta la función, perfiles solo la llama).
+  final Future<void> Function(String childId)? purgePictosForChild;
 
   @override
   Future<List<ChildProfile>> getChildren() async {
@@ -26,7 +37,7 @@ final class LocalChildProfileRepository implements ChildProfileRepository {
       throw const DataSourceException('El nombre del niño no puede estar vacío');
     }
     final persisted = ChildProfile(
-      id: 'child-${DateTime.now().microsecondsSinceEpoch}',
+      id: 'child-${DateTime.now().microsecondsSinceEpoch}-${_idCounter++}',
       name: name,
       age: child.age,
       avatarColor: child.avatarColor,
@@ -64,5 +75,8 @@ final class LocalChildProfileRepository implements ChildProfileRepository {
     final models = [...await dataSource.loadChildren()];
     final remaining = models.where((model) => model.id != id).toList();
     await dataSource.saveChildren(remaining);
+    // RF2.7: "borra también sus datos" — los pictos del chico quedan fuera
+    // del dispositivo en la misma operación de borrado.
+    await purgePictosForChild?.call(id);
   }
 }

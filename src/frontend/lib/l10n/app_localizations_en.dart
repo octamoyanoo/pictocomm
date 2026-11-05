@@ -325,12 +325,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get noChildrenYet => 'No children added yet';
 
   @override
-  String get accountSection => 'My account';
-
-  @override
-  String get signOut => 'Sign out';
-
-  @override
   String get deleteProfileTooltip => 'Delete profile';
 
   @override

@@ -113,8 +113,6 @@
   "childrenSection": "Crianças",
   "addChildTooltip": "Adicionar criança",
   "noChildrenYet": "Ainda não há crianças cadastradas",
-  "accountSection": "Minha conta",
-  "signOut": "Encerrar sessão",
   "deleteProfileTooltip": "Excluir perfil",
   "profilesLoadError": "Não foi possível ler os perfis: {message}",
   "@profilesLoadError": { "placeholders": { "message": { "type": "String" } } },

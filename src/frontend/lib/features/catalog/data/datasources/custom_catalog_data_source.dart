@@ -21,18 +21,41 @@ final class CustomCatalogDataSource {
     return _decodePictos(prefs.getString(_pictosKey));
   }
 
-  /// RF3.9: borra la categoría y en cascada sus pictos.
-  Future<void> deleteCategory(String categoryId) async {
+  /// RF3.9: borra la categoría y, en cascada, sus pictos. Con
+  /// [childProfileId] de la sesión activa, la cascada solo elimina los pictos
+  /// DE ESE chico (los de otros chicos y los custom sin dueño permanecen).
+  Future<void> deleteCategory(String categoryId, {String? childProfileId}) async {
     final prefs = await SharedPreferences.getInstance();
     final categories = _decodeCategories(prefs.getString(_categoriesKey));
     final remainingCategories = categories.where((category) => category.id != categoryId).toList();
     final pictos = _decodePictos(prefs.getString(_pictosKey));
-    final remainingPictos = pictos.where((picto) => picto.categoryId != categoryId).toList();
+    // Sobrevive un picto si no está en la categoría borrada, o si está pero
+    // NO es del chico activo: con dueño ajeno (RF3.6) o sin dueño (RF3.7).
+    // Sin childProfileId (gestión sin sesión), la cascada es de toda la
+    // categoría.
+    final remainingPictos = pictos.where((picto) {
+      if (picto.categoryId != categoryId) {
+        return true;
+      }
+      final belongsToActiveChild = childProfileId == null || picto.childProfileId == childProfileId;
+      return !belongsToActiveChild;
+    }).toList();
     await prefs.setString(_categoriesKey, jsonEncode([
       for (final category in remainingCategories) CategoryModel.fromEntity(category).toJson(),
     ]));
     await prefs.setString(_pictosKey, jsonEncode([
       for (final picto in remainingPictos) PictoModel.fromEntity(picto).toJson(),
+    ]));
+  }
+
+  /// RF2.7 (cascada del borrado de perfil): elimina todos los pictos
+  /// personalizados de ese chico, sin importar la categoría.
+  Future<void> deletePictosForChild(String childProfileId) async {
+    final prefs = await SharedPreferences.getInstance();
+    final pictos = _decodePictos(prefs.getString(_pictosKey));
+    final remaining = pictos.where((picto) => picto.childProfileId != childProfileId).toList();
+    await prefs.setString(_pictosKey, jsonEncode([
+      for (final picto in remaining) PictoModel.fromEntity(picto).toJson(),
     ]));
   }
 

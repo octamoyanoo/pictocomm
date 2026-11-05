@@ -113,8 +113,6 @@
   "childrenSection": "Children",
   "addChildTooltip": "Add child",
   "noChildrenYet": "No children added yet",
-  "accountSection": "My account",
-  "signOut": "Sign out",
   "deleteProfileTooltip": "Delete profile",
   "profilesLoadError": "Could not read the profiles: {message}",
   "@profilesLoadError": { "placeholders": { "message": { "type": "String" } } },

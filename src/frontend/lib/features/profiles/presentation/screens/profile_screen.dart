@@ -91,8 +91,6 @@ final class _ProfileContent extends StatelessWidget {
           child: Text(l10n.profileTitle, style: Theme.of(context).textTheme.titleLarge),
         ),
         const SizedBox(height: 20),
-        const _CaregiverCard(),
-        const SizedBox(height: 20),
         // RF4.2: selector de idioma de la UI, espacio del adulto. El cambio
         // aplica en el momento (RF4.3) vía LocaleController sobre MaterialApp.
         const _LanguageSection(),
@@ -204,40 +202,6 @@ final class _LanguageOptionTile extends StatelessWidget {
           fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
           color: isSelected ? AppColors.accent : AppColors.textPrimary,
         ),
-      ),
-    );
-  }
-}
-
-final class _CaregiverCard extends StatelessWidget {
-  const _CaregiverCard();
-
-  @override
-  Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context)!;
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(color: AppColors.surface, borderRadius: BorderRadius.circular(16)),
-      child: Row(
-        children: [
-          const CircleAvatar(
-            radius: 26,
-            backgroundColor: AppColors.accentLight,
-            child: Icon(Icons.face_outlined, color: AppColors.accent),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(l10n.accountSection, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: AppColors.textPrimary)),
-                const SizedBox(height: 2),
-                const Text('casa@pictocomm.app', style: TextStyle(fontSize: 13, color: AppColors.textSecondary)),
-              ],
-            ),
-          ),
-          Text(l10n.signOut, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.accent)),
-        ],
       ),
     );
   }
