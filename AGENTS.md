@@ -68,6 +68,21 @@ La app es **local-first**: lee SIEMPRE de local y funciona sin conexión.
 - `test/helpers/fakes.dart` incluye `ExplodingRemoteDataSource`: falla ruidosamente si algún camino de lectura toca el remoto. Si un test lo dispara, hay un bug de local-first.
 - `Picto` ya tiene `createdAt`/`updatedAt` para resolución de conflictos al sincronizar.
 
+## Documentación: flujo specs ↔ requerimientos
+
+La documentación funcional tiene dos capas con roles distintos (convenio tomado del repo ControlStock):
+
+| Capa | Carpeta | Qué define | Cuándo se toca |
+|---|---|---|---|
+| **Requerimiento** | `docs/requerimientos/implementados/REQ-<MOD>-NN-<slug>.md` | **Qué debe hacer** (normativa, referencia de verdad): RF/RNF, casos de uso, criterios de aceptación Given/When/Then | Antes de implementar; se corrige si la decisión cambia |
+| **Spec de usuario** | `docs/specs/aprobadas/` y `docs/specs/por-aprobar/` | **Cómo lo hace hoy** (descripción real del código): comportamiento, archivos, validaciones, limitaciones | Después de implementar o al cambiar una funcionalidad |
+
+- El índice de funcionalidades es [`docs/specs/0000-index.md`](docs/specs/0000-index.md): toda funcionalidad con spec está listada ahí, con link. Un spec nuevo arranca en `por-aprobar/` y pasa a `aprobadas/` cuando se revisó contra el código.
+- Cada REQ referencia sus specs vigentes en el header, y cada spec referencia su REQ (o marca que no existe, como `por-aprobar/acceso.md`: login sin requerimiento que lo cubra).
+- **Regla de actualización**: cambiar una funcionalidad = actualizar el REQ primero (si cambia la normativa) y luego su spec. Si el código y el spec difieren, es un bug o un spec desactualizado: nunca "documentar el bug" en silencio.
+- Los RF se numeran `RF-<modulo>.<n>` por documento (RF-1.x comunicación, RF-2.x perfiles, RF-3.x catálogo, RF-4.x idioma); igual para RNF y CA.
+- No crear documentos RF sueltos en la raíz de `requerimientos/`: un requerimiento nuevo es un `REQ-*` nuevo en `implementados/` (o una sección nueva en el existente si es la misma feature).
+
 ## Comandos
 
 ```bash
