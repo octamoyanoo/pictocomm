@@ -4,7 +4,7 @@
 
 App Flutter (local-first) para comunicación por imágenes en niños autistas no verbales de 2-5 años.
 
-Frontend definido y verificado. **El backend todavía NO existe**: `src/backend/` está vacío a propósito.
+Frontend definido y verificado. **Backend v1 (REQ-BCK-01, solo descarga) implementado y verificado**: `src/backend/` es un paquete Dart (shelf) que sirve el catálogo remoto desde un seed JSON; la app lo sincroniza al arrancar y lo mergea local (spec en `docs/specs/por-aprobar/backend-sync.md`, pendiente de aprobar).
 
 ## Objetivo del Proyecto
 
@@ -13,7 +13,7 @@ Ver [overview.md](overview.md) para detalles del propósito y alcance del proyec
 ## Ubicación del código
 
 - **frontend (app Flutter)**: `src/frontend/`
-- **backend**: `src/backend/` — se implementa cuando el usuario lo pida. El frontend ya está preparado para recibirlo (ver "Backend-ready").
+- **backend (API del catálogo remoto)**: `src/backend/` — paquete **Dart puro** (sin Flutter): `bin/server.dart` (server shelf), `lib/src/` (store del seed + router de la API), `data/seed.json` + `data/images/` (el catálogo), `test/`. Corre con `dart run bin/server.dart` desde esa carpeta.
 
 ## Arquitectura: Clean Architecture ligera por features
 
@@ -58,15 +58,16 @@ presentation  →  domain  ←  data
 
 `PictoSource` existe para evitar el `if (isLocal) Image.file else Image.asset` disperso por los widgets: el `switch` queda en un solo lugar (`PictoCard`).
 
-## Backend-ready (aún no implementado)
+## Backend (v1: sync de solo descarga, REQ-BCK-01)
 
-La app es **local-first**: lee SIEMPRE de local y funciona sin conexión.
+La app es **local-first**: lee SIEMPRE de local y funciona sin conexión. Sigue vigente ahora que el backend existe.
 
-- `RemoteCatalogDataSource` (`features/catalog/data/datasources/`) ya define el contrato del backend. Todos sus métodos lanzan `UnimplementedFeatureException` a propósito.
-- `LocalPictoRepository` ya recibe el remote por constructor. Cuando exista el backend, se implementa el datasource y se agrega la lógica de sync **sin tocar pantallas ni providers**.
-- Los modelos de `data/models/` ya tienen `fromJson`/`toJson`, listos para parsear respuestas HTTP.
-- `test/helpers/fakes.dart` incluye `ExplodingRemoteDataSource`: falla ruidosamente si algún camino de lectura toca el remoto. Si un test lo dispara, hay un bug de local-first.
-- `Picto` ya tiene `createdAt`/`updatedAt` para resolución de conflictos al sincronizar.
+- `RemoteCatalogDataSource` define el contrato del backend. La implementación real es `HttpRemoteCatalogDataSource` (URL por `--dart-define=PICTOCOMM_BACKEND_URL`, default `http://localhost:8080`).
+- El sync corre en `AppDependencies.bootstrap()` con `unawaited(syncFromRemote())`: incremental por `updatedAt`, cacheado en SharedPreferences (`pictocomm.remote_*`, claves separadas de las custom) y mergeado en lectura por `LocalPictoRepository`. **Nunca agregar lecturas que toquen el remote**: solo el sync.
+- El sync falla en silencio (RF-5.10): backend caído = app normal.
+- Los modelos de `data/models/` comparten formato JSON con el seed/API del backend; cambiar un campo exige actualizar `src/backend/data/seed.json` y `lib/src/` del backend.
+- `test/helpers/fakes.dart` incluye `ExplodingRemoteDataSource`: falla ruidosamente si algún camino de **lectura** toca el remoto. Si un test lo dispara, hay un bug de local-first. `FakeRemoteCatalogDataSource` simula el backend para tests del sync.
+- `Picto` ya tiene `createdAt`/`updatedAt`; la subida de pictos custom (bidireccional) es v2.
 
 ## Documentación: flujo specs ↔ requerimientos
 
@@ -80,7 +81,7 @@ La documentación funcional tiene dos capas con roles distintos (convenio tomado
 - El índice de funcionalidades es [`docs/specs/0000-index.md`](docs/specs/0000-index.md): toda funcionalidad con spec está listada ahí, con link. Un spec nuevo arranca en `por-aprobar/` y pasa a `aprobadas/` cuando se revisó contra el código.
 - Cada REQ referencia sus specs vigentes en el header, y cada spec referencia su REQ (o marca que no existe, como `por-aprobar/acceso.md`: login sin requerimiento que lo cubra).
 - **Regla de actualización**: cambiar una funcionalidad = actualizar el REQ primero (si cambia la normativa) y luego su spec. Si el código y el spec difieren, es un bug o un spec desactualizado: nunca "documentar el bug" en silencio.
-- Los RF se numeran `RF-<modulo>.<n>` por documento (RF-1.x comunicación, RF-2.x perfiles, RF-3.x catálogo, RF-4.x idioma); igual para RNF y CA.
+- Los RF se numeran `RF-<modulo>.<n>` por documento (RF-1.x comunicación, RF-2.x perfiles, RF-3.x catálogo, RF-4.x idioma, RF-5.x backend); igual para RNF y CA.
 - No crear documentos RF sueltos en la raíz de `requerimientos/`: un requerimiento nuevo es un `REQ-*` nuevo en `implementados/` (o una sección nueva en el existente si es la misma feature).
 
 ## Comandos
@@ -91,7 +92,15 @@ flutter pub get        # instalar dependencias
 flutter analyze        # lint (debe dar 0 issues)
 flutter test           # tests
 flutter run            # correr la app
+
+# desde src/backend (dart está en D:\flutter\bin)
+dart pub get           # instalar dependencias
+dart analyze           # lint (debe dar 0 issues)
+dart test              # tests
+dart run bin/server.dart   # correr el backend (localhost:8080; PORT para otro puerto)
 ```
+
+Para probar sync en emulador Android: `flutter run --dart-define=PICTOCOMM_BACKEND_URL=http://10.0.2.2:8080`.
 
 ## Gotchas
 
@@ -103,6 +112,7 @@ flutter run            # correr la app
 - `CupertinoPageTransitionsBuilder` no viene de `material.dart` → importarlo de `package:flutter/cupertino.dart`.
 - `rootBundle` / `AssetManifest` vienen de `package:flutter/services.dart`, no de `material.dart`.
 - Las carpetas `assets/images/*` están vacías; a medida que se agreguen imágenes reales se listan en `pubspec.yaml` bajo `flutter: assets:`. Con assets vacíos la home muestra el estado vacío, no un error.
+- El build de **Windows desktop** requiere **Developer Mode** habilitado (symlinks de plugins) y **`nuget.exe`** (plugin `flutter_tts`). El nuget quedó en `D:\flutter\bin\` (descargado de `https://aka.ms/nugetclidl` con `curl.exe --ssl-no-revoke`, porque PowerShell/Invoke-WebRequest falla con SSL en esta red); al correr `flutter run -d windows` anteponer `D:\flutter\bin` al PATH.
 - En tests, `expect(() => futureQueLanza, throwsA(...))` no funciona: usar `await expectLater(future, throwsA(...))`.
 - `Set-Content` en PowerShell 5.1 no tiene `-NoNewline`; para reescribir archivos usar `[System.IO.File]::WriteAllText`.
 

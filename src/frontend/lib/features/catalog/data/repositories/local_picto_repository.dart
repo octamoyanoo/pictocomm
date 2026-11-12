@@ -1,10 +1,14 @@
 import '../../../../core/error/app_exception.dart';
+import 'dart:ui' show Color;
+
 import '../../domain/entities/category.dart';
 import '../../domain/entities/picto.dart';
 import '../../domain/repositories/category_repository.dart';
 import '../../domain/repositories/picto_repository.dart';
+import '../models/picto_model.dart';
 import '../datasources/custom_catalog_data_source.dart';
 import '../datasources/local_catalog_data_source.dart';
+import '../datasources/remote_catalog_cache_data_source.dart';
 import '../datasources/remote_catalog_data_source.dart';
 
 final class LocalPictoRepository implements CategoryRepository, PictoRepository {
@@ -12,6 +16,8 @@ final class LocalPictoRepository implements CategoryRepository, PictoRepository 
     required this.localDataSource,
     required this.customDataSource,
     required this.remoteDataSource,
+    this.cacheDataSource = const RemoteCatalogCacheDataSource(),
+    this.syncPageLimit = 100,
   });
 
   final LocalCatalogDataSource localDataSource;
@@ -19,6 +25,14 @@ final class LocalPictoRepository implements CategoryRepository, PictoRepository 
   final CustomCatalogDataSource customDataSource;
 
   final RemoteCatalogDataSource remoteDataSource;
+
+  /// Cache local del catálogo remoto (REQ-BCK-01). Las lecturas salen de
+  /// acá, nunca de la red (local-first, RF-5.11).
+  final RemoteCatalogCacheDataSource cacheDataSource;
+
+  /// Tamaño de página del sync incremental (RF-5.7): el loop corta cuando
+  /// el backend devuelve menos que esto (fin de datos).
+  final int syncPageLimit;
 
   /// Ids únicos aunque dos creaciones caigan en el mismo microsegundo.
   static int _idCounter = 0;
@@ -44,7 +58,18 @@ final class LocalPictoRepository implements CategoryRepository, PictoRepository 
         custom: true,
       ),
     ];
-    return [...bundledCategories, ...customCategories];
+    // REQ-BCK-01 (RF-5.8): el remoto cacheado se mergea por lectura, sin
+    // duplicar ids ya presentes (bundled/custom ganan).
+    final knownCategoryIds = <String>{
+      for (final category in bundledCategories) category.id,
+      for (final category in customCategories) category.id,
+    };
+    final remoteCategories = [
+      for (final stored in await cacheDataSource.loadCategories())
+        if (!knownCategoryIds.contains(stored.id))
+          Category(id: stored.id, name: stored.name, color: Color(stored.color), icon: stored.icon),
+    ];
+    return [...bundledCategories, ...customCategories, ...remoteCategories];
   }
 
   @override
@@ -56,7 +81,15 @@ final class LocalPictoRepository implements CategoryRepository, PictoRepository 
     final visibleCustomPictos = childProfileId == null
         ? customPictos
         : customPictos.where((picto) => picto.childProfileId == null || picto.childProfileId == childProfileId).toList();
-    final all = [...bundledPictos, ...visibleCustomPictos];
+    // REQ-BCK-01 (RF-5.6/RF-5.8): los remotos salen del cache local con la
+    // misma regla de visibilidad (hoy llegan sin dueño, visibles para todos).
+    final remotePictos = [
+      for (final stored in await cacheDataSource.loadPictos()) stored.toEntity(),
+    ];
+    final visibleRemotePictos = childProfileId == null
+        ? remotePictos
+        : remotePictos.where((picto) => picto.childProfileId == null || picto.childProfileId == childProfileId).toList();
+    final all = [...bundledPictos, ...visibleCustomPictos, ...visibleRemotePictos];
     if (categoryId == null) {
       return all;
     }
@@ -148,6 +181,48 @@ final class LocalPictoRepository implements CategoryRepository, PictoRepository 
       ),
     );
   }
+
+  /// REQ-BCK-01: sync de solo descarga (RF-5.5 a RF-5.7).
+  ///
+  /// Descarga categorías y pictos nuevos del backend (`updatedAt` posterior
+  /// al último sync), los cachea con upsert por id y avanza la fecha del
+  /// sync. Se pagina con el `limit` máximo para no perder items cuando el
+  /// catálogo remoto supera una página.
+  ///
+  /// Si el backend no está disponible (RF-5.10) falla en silencio: la app
+  /// sigue con su catálogo local y sin errores visibles.
+  Future<void> syncFromRemote() async {
+    final pageLimit = syncPageLimit;
+    try {
+      final remoteCategories = await remoteDataSource.getCategories();
+      var cursor = await cacheDataSource.lastSyncAt() ?? DateTime.fromMillisecondsSinceEpoch(0, isUtc: true);
+      final fetched = <PictoModel>[];
+      while (true) {
+        final page = await remoteDataSource.getPictos(since: cursor, limit: pageLimit);
+        if (page.isEmpty) {
+          break;
+        }
+        fetched.addAll(page);
+        if (page.length < pageLimit) {
+          break;
+        }
+        final newest = page.map((picto) => picto.updatedAt).reduce(_newest);
+        if (!newest.isAfter(cursor)) {
+          // Guarda anti-loop: la página no avanzó el cursor.
+          break;
+        }
+        cursor = newest;
+      }
+      final lastSync = fetched.isEmpty ? null : fetched.map((picto) => picto.updatedAt).reduce(_newest);
+      await cacheDataSource.save(categories: remoteCategories, pictos: fetched, syncedAt: lastSync);
+    } on AppException {
+      // RF-5.10: backend caído / sin conexión / timeout → silencio.
+    } on FormatException {
+      // Respuesta malformada → también silenciosa (local-first).
+    }
+  }
+
+  static DateTime _newest(DateTime a, DateTime b) => a.isAfter(b) ? a : b;
 
   Future<Set<String>> _bundledCategoryIds() async {
     final assets = await localDataSource.bundledImageAssets();

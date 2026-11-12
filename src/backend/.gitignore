@@ -1,0 +1,4 @@
+# Dart/Flutter build cache y artefactos
+.dart_tool/
+.packages
+build/

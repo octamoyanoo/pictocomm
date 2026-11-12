@@ -12,6 +12,7 @@ Esta carpeta es **meramente normativa**: contiene la documentación de requerimi
   | [`REQ-PER-01-perfiles.md`](implementados/REQ-PER-01-perfiles.md) | Perfiles de niño | RF-2.x |
   | [`REQ-CAT-01-catalogo.md`](implementados/REQ-CAT-01-catalogo.md) | Catálogo y pictogramas personalizados | RF-3.x |
   | [`REQ-IDI-01-idioma.md`](implementados/REQ-IDI-01-idioma.md) | Idioma de la app (i18n) | RF-4.x |
+  | [`REQ-BCK-01-backend-sync.md`](implementados/REQ-BCK-01-backend-sync.md) | Backend y sync del catálogo (descarga) | RF-5.x |
 
   Formato interno de cada documento: Objetivo, Estado actual, Estado objetivo, Requerimientos funcionales (RF), Requerimientos no funcionales (RNF), Casos de uso (UC), Criterios de aceptación (CA, Given/When/Then), Fuera de alcance y Decisiones.
 

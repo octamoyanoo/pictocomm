@@ -154,6 +154,66 @@ final class ExplodingRemoteDataSource implements RemoteCatalogDataSource {
   }
 }
 
+/// Backend "en memoria" para tests del sync (REQ-BCK-01): respeta el mismo
+/// contrato que el HTTP real — filtra por `categoryId`, `since` (estricto) y
+/// `limit`. Registra los `since` pedidos para verificar el incremental
+/// (RF-5.7). Con [error] simulado, todo método falla (backend caído, RF-5.10).
+final class FakeRemoteCatalogDataSource implements RemoteCatalogDataSource {
+  FakeRemoteCatalogDataSource({
+    List<CategoryModel> categories = const <CategoryModel>[],
+    List<PictoModel> pictos = const <PictoModel>[],
+    this._error,
+  }) : _categories = [...categories],
+       _pictos = [...pictos];
+
+  final List<CategoryModel> _categories;
+  final List<PictoModel> _pictos;
+  final Object? Function()? _error;
+
+  /// Valores de `since` recibidos por `getPictos`, en orden.
+  final List<DateTime?> pictosSinceCalls = [];
+
+  /// Pictos remotos vigentes (mutables para simular cambios en el backend).
+  List<PictoModel> get pictos => _pictos;
+
+  void addPicto(PictoModel picto) => _pictos.add(picto);
+
+  @override
+  Future<List<CategoryModel>> getCategories() async {
+    _throwIfError();
+    return _categories;
+  }
+
+  @override
+  Future<List<PictoModel>> getPictos({String? categoryId, DateTime? since, int limit = 100}) async {
+    _throwIfError();
+    pictosSinceCalls.add(since);
+    return _pictos
+        .where((picto) => categoryId == null || picto.categoryId == categoryId)
+        .where((picto) => since == null || picto.updatedAt.isAfter(since))
+        .take(limit)
+        .toList();
+  }
+
+  @override
+  Future<PictoModel> getPicto(String id) async {
+    _throwIfError();
+    for (final picto in _pictos) {
+      if (picto.id == id) {
+        return picto;
+      }
+    }
+    throw const DataSourceException('picto no encontrado');
+  }
+
+  void _throwIfError() {
+    final error = _error?.call();
+    if (error != null) {
+      throw error;
+    }
+  }
+}
+
 /// Voz "en silencio" para tests: respeta el contrato (speak completa solo
 /// cuando la palabra "terminó de sonar") pero no pronuncia nada. Registra
 /// lo pedido para que los tests puedan verificar qué se quiso reproducir.

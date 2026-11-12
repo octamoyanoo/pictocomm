@@ -1,6 +1,8 @@
+import 'dart:async';
+
 import '../../features/catalog/data/datasources/custom_catalog_data_source.dart';
+import '../../features/catalog/data/datasources/http_remote_catalog_data_source.dart';
 import '../../features/catalog/data/datasources/local_catalog_data_source.dart';
-import '../../features/catalog/data/datasources/remote_catalog_data_source.dart';
 import '../../features/catalog/data/repositories/local_picto_repository.dart';
 import '../../features/catalog/domain/repositories/category_repository.dart';
 import '../../features/catalog/domain/repositories/picto_repository.dart';
@@ -27,8 +29,14 @@ final class AppDependencies {
     final localPictoRepository = LocalPictoRepository(
       localDataSource: const LocalCatalogDataSource(),
       customDataSource: CustomCatalogDataSource(),
-      remoteDataSource: const UnimplementedRemoteCatalogDataSource(),
+      // REQ-BCK-01: el remote real reemplaza al stub; la app sigue leyendo
+      // siempre de local (RF-5.11) y el sync corre aparte (RF-5.5).
+      remoteDataSource: HttpRemoteCatalogDataSource(),
     );
+    // RF-5.5: sync al arrancar, fire-and-forget — no bloquea el primer frame
+    // ni toca pantallas/providers. Si el backend no está, falla en silencio
+    // (RF-5.10, lo maneja el repositorio).
+    unawaited(localPictoRepository.syncFromRemote());
     return AppDependencies(
       categoryRepository: localPictoRepository,
       pictoRepository: localPictoRepository,
