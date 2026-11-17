@@ -9,7 +9,7 @@ Funcionalidad que **permite al niño construir una frase tocando pictos y reprod
 - Es la pestaña **Comunicar** de la barra inferior: vive en la ruta `/comunicar` y es la pantalla central de la app.
 - Muestra el header **Comunicar**, la **tira de frase** arriba, chips de categoría para filtrar la grilla y la grilla de pictos visibles para el chico de la sesión activa.
 - **Tocar un picto no produce sonido**: el toque agrega el picto al final de la tira de frase y produce un feedback **visual** inequívoco (flash de la card). El único canal que confirma que el toque entró es el visual.
-- El botón **Play** (siempre visible) reproduce la palabra de cada picto seleccionado, **en el orden de selección**, con un diálogo de reproducción tipo karaoke. La voz es TTS del sistema (offline).
+- El botón **Play** (siempre visible) reproduce la palabra de cada picto seleccionado, **en el orden de la barra** (selección o reordenamiento, RF-1.3), con un diálogo de reproducción tipo karaoke. La voz es TTS del sistema (offline).
 - La corrección es por niveles: **mini-basura** bajo cada picto de la tira (quita solo ese), **backspace** (quita el último) y **basura global** (limpia toda la frase).
 
 ## Experiencia de usuario
@@ -20,7 +20,7 @@ Funcionalidad que **permite al niño construir una frase tocando pictos y reprod
 4. Pulsa **Play**: se abre un diálogo a pantalla oscura que agranda cada picto de la frase (340px, fondo negro, label grande) y pronuncia su palabra con la voz; la tira inferior del diálogo hace **karaoke** (el picto activo se agranda 1.12x con borde acento y la tira auto-scrollea hasta él).
 5. Cada palabra suena **una tras otra**: el diálogo avanza al siguiente picto recién cuando el TTS terminó de pronunciar el actual.
 6. Al cerrar el diálogo (X, tap afuera o botón back), la voz se corta de inmediato y la frase **se mantiene** en la barra (puede reproducir de nuevo).
-7. Para corregir: usa la mini-basura bajo un picto (lo quita solo a él), el backspace (quita el último) o la basura global (borra todo).
+7. Para corregir: usa la mini-basura bajo un picto (lo quita solo a él), el backspace (quita el último) o la basura global (borra todo). También puede **reordenar** (RF-1.3): mantener presionado un chip y arrastrarlo a su nueva posición; el Play pronuncia en el orden que quedó en la barra.
 
 ## Cómo lo hace (implementación)
 
@@ -29,7 +29,7 @@ Funcionalidad que **permite al niño construir una frase tocando pictos y reprod
 | Parte | Archivo | Rol |
 |---|---|---|
 | Pantalla | `lib/features/catalog/presentation/screens/comunicar_screen.dart` | Estado local `_sentence` (lista de `Picto`) + `_categoryId` (filtro); compone tira, chips, grilla y diálogo |
-| Tira de frase | `comunicar_screen.dart` (`_SentenceStrip`, `_SentenceChip`, `_StripAction`) | Chips de 76px con mini-basura individual (`Icons.delete_outline` 18px rojo), backspace (`removeLastTooltip`) y basura global (`clearSentenceTooltip`) |
+| Tira de frase | `comunicar_screen.dart` (`_SentenceStrip`, `_SentenceChip`, `_StripAction`) | Chips de 76px con mini-basura individual (`Icons.delete_outline` 18px rojo), backspace (`removeLastTooltip`) y basura global (`clearSentenceTooltip`). **Reordenamiento (RF-1.3, v3)**: `ReorderableListView.builder` horizontal con `onReorderItem` y `ReorderableDelayedDragStartListener` (long-press ≈500 ms para levantar el chip, toque simple no reordena); cada slot lleva una key estable (`slot-N`, un picto puede repetirse y las keys tienen que seguir siendo únicas); proxy con escala 1.06 durante el drag |
 | Feedback del toque | `lib/features/catalog/presentation/widgets/picto_card.dart` | Flash autónomo: borde `accent` 2.5px, `AnimatedScale` 1.08, sombra y texto en accent, 450 ms. Key de test `picto_highlighted` (visible solo durante el flash) |
 | Grilla y filtro | `comunicar_screen.dart` (`_CategoryChips`, `EmptyCategoryHint`) | `ChoiceChip` "Todas" + un chip por categoría; categoría sin pictos muestra el hint vacío |
 | Diálogo de reproducción | `comunicar_screen.dart` (`_PlaySequenceDialog`) | Loop palabra por palabra: `setState(_index = i)` + `_scrollTo(i)` (auto-scroll, chip 92px, animación 200 ms easeOut) + `await voiceProvider.speak(label)` |
@@ -41,7 +41,7 @@ Funcionalidad que **permite al niño construir una frase tocando pictos y reprod
 ### Flujo paso a paso
 
 1. La ruta `/comunicar` envuelve la pantalla con `PictosProvider` (compartido, recargado en microtask) y `Provider<VoiceProvider>.value`.
-2. Cada toque de picto pasa por `PictoCard._handleTap`: dispara el flash (450 ms) y llama al callback de la pantalla, que hace `_sentence.add(picto)` y `setState`.
+2. Cada toque de picto pasa por `PictoCard._handleTap`: dispara el flash (450 ms) y llama al callback de la pantalla, que agrega el picto al final de `_sentence` con una key de slot nueva y `setState`.
 3. **Play** con frase vacía está deshabilitado (`onPressed: null`, fondo gris translúcido); con frase abre `_PlaySequenceDialog`.
 4. `initState` del diálogo lanza `_play()`: primero `setLanguage` con el idioma de la UI (leído del `LocaleController`, decisión #4 de REQ-COM-01) y por cada picto marca el índice activo, auto-scrollea la tira del diálogo y `await`speak con **timeout de 6 s** por palabra.
 5. Si el TTS lanza `VoiceException` o expira el timeout, el diálogo muestra el aviso `voiceUnavailable` y **la frase sigue avanzando** (no se traba).
@@ -60,7 +60,7 @@ Funcionalidad que **permite al niño construir una frase tocando pictos y reprod
 | Toque de picto | Sin sonido; flash visual de 450 ms + aparición del chip en la tira |
 | Frase vacía | Play deshabilitado; backspace y basura global son no-ops seguros |
 | Cantidad de pictos | Sin límite; la tira scrollea horizontal; repetidos permitidos |
-| Orden | El de selección (posición de agregado); sin reordenamiento manual |
+| Orden | El de selección por defecto; **reordenable por arrastre** (long-press sobre el chip + drag horizontal, RF-1.3) |
 | Reproducir de nuevo | La tira se mantiene tras el Play; se puede repetir |
 | TTS falla o tarda > 6 s | Aviso `voiceUnavailable` en el diálogo; la secuencia sigue avanzando |
 | Cerrar el diálogo | `stop()` inmediato: la voz se corta aunque esté a mitad de palabra |
@@ -70,7 +70,7 @@ Funcionalidad que **permite al niño construir una frase tocando pictos y reprod
 
 - El "karaoke" (picto activo agrandado + auto-scroll durante el Play) es **normativo**: fue confirmado en el cierre v2 (decisión #3 de REQ-COM-01).
 - El idioma del TTS **sigue el idioma de la interfaz** (`es`/`en`/`pt`, decisión #4 de REQ-COM-01): antes del primer `speak` del Play, la pantalla le pasa el `languageCode` de la UI a `VoiceProvider.setLanguage()`. Si el dispositivo no tiene una voz de ese idioma instalada, se conserva la voz del sistema **sin error** (fallback silencioso). No hay configuración de voz por perfil.
-- No hay reordenamiento de la frase ni edición de un picto ya agregado (solo quitar).
+- No hay edición de la palabra de un picto ya agregado (solo quitar o reordenar).
 - Con la tira scrolleando, los targets de la mini-basura son pequeños: no se ha resuelto el riesgo de toques accidentales anotado en las notas de implementación.
 
 ---

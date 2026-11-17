@@ -24,10 +24,16 @@ final class ComunicarScreen extends StatefulWidget {
 }
 
 final class _ComunicarScreenState extends State<ComunicarScreen> {
-  final List<Picto> _sentence = [];
+  // RF-1.3 (reordenamiento): cada slot lleva una key estable e única — el
+  // mismo picto puede agregarse dos veces y ReorderableListView exige keys
+  // únicas que sobrevivan al reordenado.
+  final List<({String key, Picto picto})> _sentence = [];
+  int _slotCounter = 0;
   String? _categoryId;
 
-  void _addPicto(Picto picto) => setState(() => _sentence.add(picto));
+  void _addPicto(Picto picto) => setState(() {
+        _sentence.add((key: 'slot-${_slotCounter++}', picto: picto));
+      });
 
   void _removeAt(int index) => setState(() => _sentence.removeAt(index));
 
@@ -41,6 +47,16 @@ final class _ComunicarScreenState extends State<ComunicarScreen> {
 
   void _clearSentence() => setState(() => _sentence.clear());
 
+  // RF-1.3: drag & drop horizontal — el orden de la barra es el orden de
+  // habla (RF-1.6). `onReorderItem` ya viene con el newIndex ajustado por
+  // el removido del viejo (el framework hace el newIndex - 1).
+  void _reorder(int oldIndex, int newIndex) {
+    setState(() {
+      final entry = _sentence.removeAt(oldIndex);
+      _sentence.insert(newIndex, entry);
+    });
+  }
+
   void _showPlaySequence() {
     if (_sentence.isEmpty) {
       return;
@@ -49,7 +65,7 @@ final class _ComunicarScreenState extends State<ComunicarScreen> {
       context: context,
       barrierColor: Colors.black87,
       builder: (_) => _PlaySequenceDialog(
-        pictos: List.of(_sentence),
+        pictos: [for (final entry in _sentence) entry.picto],
         voiceProvider: context.read<VoiceProvider>(),
         // RF1.11: la voz sigue el idioma elegido de la interfaz.
         languageCode: context.read<LocaleController>().languageCode,
@@ -70,6 +86,7 @@ final class _ComunicarScreenState extends State<ComunicarScreen> {
               categoryId: _categoryId,
               onCategorySelected: (value) => setState(() => _categoryId = value),
               onPictoTapped: _addPicto,
+              onReorder: _reorder,
               onRemoveAt: _removeAt,
               onRemoveLast: _removeLast,
               onClear: _clearSentence,
@@ -89,6 +106,7 @@ final class _ComunicarContent extends StatelessWidget {
     required this.categoryId,
     required this.onCategorySelected,
     required this.onPictoTapped,
+    required this.onReorder,
     required this.onRemoveAt,
     required this.onRemoveLast,
     required this.onClear,
@@ -96,10 +114,11 @@ final class _ComunicarContent extends StatelessWidget {
   });
 
   final PictosLoadedState state;
-  final List<Picto> sentence;
+  final List<({String key, Picto picto})> sentence;
   final String? categoryId;
   final ValueChanged<String?> onCategorySelected;
   final ValueChanged<Picto> onPictoTapped;
+  final void Function(int oldIndex, int newIndex) onReorder;
   final ValueChanged<int> onRemoveAt;
   final VoidCallback onRemoveLast;
   final VoidCallback onClear;
@@ -114,6 +133,7 @@ final class _ComunicarContent extends StatelessWidget {
         const _ComunicarHeader(),
         _SentenceStrip(
           sentence: sentence,
+          onReorder: onReorder,
           onRemoveAt: onRemoveAt,
           onRemoveLast: onRemoveLast,
           onClear: onClear,
@@ -169,9 +189,17 @@ final class _ComunicarHeader extends StatelessWidget {
 }
 
 final class _SentenceStrip extends StatelessWidget {
-  const _SentenceStrip({required this.sentence, required this.onRemoveAt, required this.onRemoveLast, required this.onClear, required this.onPlay});
+  const _SentenceStrip({
+    required this.sentence,
+    required this.onReorder,
+    required this.onRemoveAt,
+    required this.onRemoveLast,
+    required this.onClear,
+    required this.onPlay,
+  });
 
-  final List<Picto> sentence;
+  final List<({String key, Picto picto})> sentence;
+  final void Function(int oldIndex, int newIndex) onReorder;
   final ValueChanged<int> onRemoveAt;
   final VoidCallback onRemoveLast;
   final VoidCallback onClear;
@@ -196,14 +224,26 @@ final class _SentenceStrip extends StatelessWidget {
                         style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.accent),
                       ),
                     )
-                  : ListView.separated(
+                  // RF-1.3: drag & drop horizontal. `buildDefaultDragHandles:
+                  // false` + ReorderableDelayedDragStartListener = arrastre
+                  // con long-press (el toque simple nunca reordena, CA-1.11).
+                  : ReorderableListView.builder(
                       scrollDirection: Axis.horizontal,
+                      buildDefaultDragHandles: false,
+                      padding: const EdgeInsets.symmetric(horizontal: 4),
                       itemCount: sentence.length,
-                      separatorBuilder: (_, index) => const Icon(Icons.chevron_right, color: AppColors.accent, size: 18),
+                      onReorderItem: onReorder,
+                      proxyDecorator: _dragProxy,
                       itemBuilder: (context, index) {
-                        return _SentenceChip(
-                          picto: sentence[index],
-                          onRemove: () => onRemoveAt(index),
+                        final entry = sentence[index];
+                        return ReorderableDelayedDragStartListener(
+                          index: index,
+                          key: ValueKey(entry.key),
+                          child: _SentenceChip(
+                            picto: entry.picto,
+                            showChevron: index > 0,
+                            onRemove: () => onRemoveAt(index),
+                          ),
                         );
                       },
                     ),
@@ -231,6 +271,18 @@ final class _SentenceStrip extends StatelessWidget {
       ),
     );
   }
+
+  /// Apariencia del chip durante el drag: leve escala para marcar que
+  /// "está levantado" (la sombra nativa del drag la agrega el framework).
+  static Widget _dragProxy(Widget child, int index, Animation<double> animation) {
+    return AnimatedBuilder(
+      animation: animation,
+      builder: (context, _) {
+        final t = Curves.easeInOut.transform(animation.value);
+        return Transform.scale(scale: 1.0 + 0.06 * t, child: Material(type: MaterialType.transparency, child: child));
+      },
+    );
+  }
 }
 
 final class _StripAction extends StatelessWidget {
@@ -252,42 +304,57 @@ final class _StripAction extends StatelessWidget {
 }
 
 final class _SentenceChip extends StatelessWidget {
-  const _SentenceChip({required this.picto, required this.onRemove});
+  const _SentenceChip({required this.picto, required this.onRemove, this.showChevron = false});
 
   final Picto picto;
   final VoidCallback onRemove;
 
+  /// El chevron de separación vive dentro del item (RF-1.3): el primer
+  /// chip no lo muestra, los demás sí, igual que el ListView.separated viejo.
+  final bool showChevron;
+
   @override
   Widget build(BuildContext context) {
-    return Column(
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.center,
       children: [
-        Container(
-          width: 76,
-          padding: const EdgeInsets.all(6),
-          decoration: BoxDecoration(color: AppColors.surface, borderRadius: BorderRadius.circular(12)),
-          child: Column(
-            children: [
-              SizedBox(
-                height: 40,
-                child: PictoImage(picto: picto),
-              ),
-              Text(
-                picto.labelFor(Localizations.localeOf(context).languageCode),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600),
-              ),
-            ],
+        if (showChevron)
+          const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 2),
+            child: Icon(Icons.chevron_right, color: AppColors.accent, size: 18),
           ),
-        ),
-        // Mini-basura de cada picto (RF1.9): quitar uno por uno sin borrar
-        // el resto de la frase.
-        GestureDetector(
-          onTap: onRemove,
-          child: Padding(
-            padding: const EdgeInsets.only(top: 2),
-            child: const Icon(Icons.delete_outline, size: 18, color: AppColors.error),
-          ),
+        Column(
+          children: [
+            Container(
+              width: 76,
+              padding: const EdgeInsets.all(6),
+              decoration: BoxDecoration(color: AppColors.surface, borderRadius: BorderRadius.circular(12)),
+              child: Column(
+                children: [
+                  SizedBox(
+                    height: 40,
+                    child: PictoImage(picto: picto),
+                  ),
+                  Text(
+                    picto.labelFor(Localizations.localeOf(context).languageCode),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600),
+                  ),
+                ],
+              ),
+            ),
+            // Mini-basura de cada picto (RF1.9): quitar uno por uno sin borrar
+            // el resto de la frase.
+            GestureDetector(
+              onTap: onRemove,
+              child: Padding(
+                padding: const EdgeInsets.only(top: 2),
+                child: const Icon(Icons.delete_outline, size: 18, color: AppColors.error),
+              ),
+            ),
+          ],
         ),
       ],
     );

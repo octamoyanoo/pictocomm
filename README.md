@@ -6,7 +6,7 @@ App Flutter **local-first** para comunicación por imágenes en niños autistas 
 
 ## Qué puede hacer
 
-- **Comunicar**: tira de frase con feedback visual al tocar, Play palabra por palabra con TTS offline, corrección por niveles (mini-basura, backspace, basura global).
+- **Comunicar**: tira de frase con feedback visual al tocar, **reordenable** (long-press + drag), Play palabra por palabra con TTS offline, corrección por niveles (mini-basura, backspace, basura global).
 - **Catálogo**: categorías y pictos incluidos, pictos multicategoría, pictos y categorías personalizadas (crear, editar, borrar con doble confirmación).
 - **Perfiles**: varios niños por dispositivo, sesión activa, último chico preseleccionado en el selector.
 - **Cuentas**: registro/login contra el backend, sesión recordada (la app abre sin conexión con sesión válida), logout.

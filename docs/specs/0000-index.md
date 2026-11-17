@@ -28,7 +28,7 @@ Listado general de las funcionalidades implementadas en **PictoComm**, con una d
 
 ## Comunicación
 
-- [**Comunicar (tira de frase + Play)**](./aprobadas/comunicar.md) — El niño arma la frase tocando pictos (feedback solo visual, sin sonido) y la reproduce palabra por palabra con Play, en el orden de selección; la voz sigue el idioma de la interfaz (TTS del sistema, offline).
+- [**Comunicar (tira de frase + Play)**](./aprobadas/comunicar.md) — El niño arma la frase tocando pictos (feedback solo visual, sin sonido) y la reproduce palabra por palabra con Play, en el orden de la barra (reordenable por arrastre); la voz sigue el idioma de la interfaz (TTS del sistema, offline).
 - [**Corrección de la frase**](./aprobadas/comunicar.md) — Mini-basura por picto, backspace del último y basura global para limpiar la barra completa.
 
 ## Idioma

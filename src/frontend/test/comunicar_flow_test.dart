@@ -159,6 +159,65 @@ void main() {
     expect(voice.spokenWords, <String>['banana', 'manzana']);
   });
 
+  testWidgets('RF1.3: long-press + drag reordena la barra y el Play sigue ese orden (CA-1.9/1.10)', (tester) async {
+    await goCommunicate(tester);
+
+    await tester.tap(find.text('banana'));
+    await tester.pump();
+    await tester.tap(find.text('manzana'));
+    await tester.pump();
+    await tester.tap(find.text('leche'));
+    await tester.pump(const Duration(milliseconds: 500));
+    await tester.pumpAndSettle();
+
+    // Orden de selección inicial: banana, manzana, leche.
+    expect(tester.getCenter(find.text('manzana').first).dx, lessThan(tester.getCenter(find.text('leche').first).dx));
+
+    // Levantar el chip del medio (manzana) con long-press y arrastrarlo
+    // más allá de leche → banana, leche, manzana.
+    final chip = find.text('manzana').first;
+    final gesture = await tester.startGesture(tester.getCenter(chip));
+    await tester.pump(const Duration(milliseconds: 600)); // supera el long-press del drag listener
+    await gesture.moveBy(const Offset(96, 0)); // un chip + chevron (~88 + separador)
+    await tester.pump();
+    await gesture.moveBy(const Offset(48, 0));
+    await tester.pump();
+    await gesture.up();
+    await tester.pumpAndSettle();
+
+    final bananaX = tester.getCenter(find.text('banana').first).dx;
+    final lecheX = tester.getCenter(find.text('leche').first).dx;
+    final manzanaX = tester.getCenter(find.text('manzana').first).dx;
+    expect(bananaX, lessThan(lecheX));
+    expect(lecheX, lessThan(manzanaX));
+
+    // CA-1.10: el orden de habla es el de la barra reordenada.
+    await tester.tap(find.byTooltip('Reproducir frase'));
+    await tester.pumpAndSettle();
+    expect(voice.spokenWords, <String>['banana', 'leche', 'manzana']);
+  });
+
+  testWidgets('RF1.3/CA-1.11: toque corto sobre un chip NO reordena', (tester) async {
+    await goCommunicate(tester);
+
+    await tester.tap(find.text('banana'));
+    await tester.pump();
+    await tester.tap(find.text('manzana'));
+    await tester.pump(const Duration(milliseconds: 500));
+    await tester.pumpAndSettle();
+
+    // Tap simple + intento de arrastre inmediato (< long-press): sin drag,
+    // el chip no se mueve y no hay reordenamiento.
+    final chip = find.text('manzana').first;
+    final gesture = await tester.startGesture(tester.getCenter(chip));
+    await gesture.moveBy(const Offset(96, 0)); // sin esperar el long-press
+    await tester.pump();
+    await gesture.up();
+    await tester.pumpAndSettle();
+
+    expect(tester.getCenter(find.text('banana').first).dx, lessThan(tester.getCenter(find.text('manzana').first).dx));
+  });
+
   testWidgets('RF1.7: tras reproducir la barra se mantiene (reproducible de nuevo)', (tester) async {
     await goCommunicate(tester);
 
