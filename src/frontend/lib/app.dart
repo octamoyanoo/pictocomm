@@ -31,7 +31,8 @@ import 'features/voice/domain/voice_provider.dart';
 
 final class AppRouter {
   AppRouter(this._dependencies, SessionProvider session, this._authProvider)
-      : _catalogProvider = CatalogProvider(
+      : _session = session,
+        _catalogProvider = CatalogProvider(
           categoryRepository: _dependencies.categoryRepository,
           pictoRepository: _dependencies.pictoRepository,
           sessionProvider: session,
@@ -49,6 +50,10 @@ final class AppRouter {
   /// REQ-ACC-01 (RF-6.6): la cuenta logueada filtra los ChildProfile del
   /// selector y taggea los nuevos.
   final AuthProvider _authProvider;
+
+  /// REQ-PER-01: el ChildrenProvider del selector restaura la marca del
+  /// último chico activo acá (mismo provider que activa la sesión).
+  final SessionProvider _session;
 
   /// Providers compartidos entre rutas (ver nota en PictosProvider):
   /// borrar o crear en una pantalla deja consistentes las demás.
@@ -86,6 +91,8 @@ final class AppRouter {
         childProfileRepository: _dependencies.childProfileRepository,
         // RF-6.6: solo los perfiles de la cuenta logueada (null = gestión).
         accountId: _authProvider.currentAccountId,
+        // REQ-PER-01: al cargar, restaura la marca del último chico activo.
+        sessionProvider: _session,
       )..load(),
       child: screen,
     );
@@ -184,7 +191,11 @@ final class PictoCommApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final session = SessionProvider();
+    final session = SessionProvider(
+      // REQ-PER-01: cada cambio de chico activo se persiste por cuenta,
+      // para marcar su tarjeta la próxima vez que abra la app.
+      childProfileRepository: dependencies.childProfileRepository,
+    );
     // REQ-ACC-01 (RF-6.4): al arrancar se restaura la sesión recordada.
     // Mientras corre (microtarea) la pantalla inicial es un splash; después
     // el AuthGate decide login vs selector de chico.

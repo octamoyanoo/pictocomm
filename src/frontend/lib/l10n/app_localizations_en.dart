@@ -407,6 +407,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get selectorSubtitle => 'Tap your photo to start';
 
   @override
+  String get selectorLastUsed => 'Last used';
+
+  @override
   String get selectorEmptyTitle => 'No child profiles yet';
 
   @override

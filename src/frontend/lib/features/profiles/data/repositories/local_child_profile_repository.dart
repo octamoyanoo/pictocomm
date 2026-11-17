@@ -87,4 +87,22 @@ final class LocalChildProfileRepository implements ChildProfileRepository {
     // del dispositivo en la misma operación de borrado.
     await purgePictosForChild?.call(id);
   }
+
+  @override
+  Future<String?> getLastChildId({String? accountId}) async {
+    try {
+      return await dataSource.loadLastChildId(accountId: accountId);
+    } on Object catch (error) {
+      throw DataSourceException('No se pudo leer el último chico activo: $error');
+    }
+  }
+
+  @override
+  Future<void> setLastChildId(String? childId, {String? accountId}) async {
+    try {
+      await dataSource.saveLastChildId(childId, accountId: accountId);
+    } on Object catch (error) {
+      throw DataSourceException('No se pudo guardar el último chico activo: $error');
+    }
+  }
 }

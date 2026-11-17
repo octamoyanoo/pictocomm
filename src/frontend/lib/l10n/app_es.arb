@@ -140,6 +140,7 @@
 
   "selectorTitle": "¿Quién se comunica hoy?",
   "selectorSubtitle": "Toca tu foto para empezar",
+  "selectorLastUsed": "Último en usar",
   "selectorEmptyTitle": "Todavía no hay perfiles de niño",
   "selectorEmptySubtitle": "Creá el primero para empezar",
   "createProfile": "Crear perfil",

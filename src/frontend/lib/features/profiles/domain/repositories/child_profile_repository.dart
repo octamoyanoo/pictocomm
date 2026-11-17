@@ -27,4 +27,15 @@ abstract interface class ChildProfileRepository {
   /// de la presentación, no del repositorio). Idempotente: borrar un id
   /// inexistente no falla.
   Future<void> deleteChild(String id);
+
+  /// REQ-PER-01: id del último chico activo de [accountId] (null = legacy,
+  /// mismo criterio de clave que getChildren), para preseleccionarlo en el
+  /// selector. La app siempre arranca en el selector (RF2.1): esto solo
+  /// MARCA la tarjeta, nunca activa la sesión.
+  Future<String?> getLastChildId({String? accountId});
+
+  /// REQ-PER-01: persiste (o limpia, con `null`) el último chico activo de
+  /// [accountId]. La clave es por cuenta: dos cuentas del mismo dispositivo
+  /// no se pisan la preselección.
+  Future<void> setLastChildId(String? childId, {String? accountId});
 }

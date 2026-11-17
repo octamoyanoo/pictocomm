@@ -449,6 +449,16 @@ final class FakeVoiceProvider implements VoiceProvider {
   /// `true` si se llamó `stop` al menos una vez.
   bool get isStopped => _stopped;
 
+  final List<String> _languages = [];
+
+  /// Códigos de idioma pedidos a `setLanguage`, en orden (RF1.11).
+  List<String> get requestedLanguages => List.unmodifiable(_languages);
+
+  @override
+  Future<void> setLanguage(String languageCode) async {
+    _languages.add(languageCode);
+  }
+
   @override
   Future<void> speak(String word) async {
     if (word.trim().isEmpty) {
@@ -476,6 +486,10 @@ final class FakeChildProfileRepository implements ChildProfileRepository {
 
   /// RF2.7: cascada inyectada, igual que el repo real (misma firma).
   final Future<void> Function(String childId)? purgePictosForChild;
+
+  /// REQ-PER-01: última preselección por cuenta (null = legacy), igual que
+  /// la clave real por cuenta.
+  final Map<String?, String?> _lastChildIds = {};
 
   List<ChildProfile> get children => List.unmodifiable(_children);
 
@@ -524,6 +538,22 @@ final class FakeChildProfileRepository implements ChildProfileRepository {
     // RF2.7: cascada espejo del repo real.
     await purgePictosForChild?.call(id);
   }
+
+  @override
+  Future<String?> getLastChildId({String? accountId}) async => _lastChildIds[accountId];
+
+  @override
+  Future<void> setLastChildId(String? childId, {String? accountId}) async {
+    if (childId == null) {
+      _lastChildIds.remove(accountId);
+    } else {
+      _lastChildIds[accountId] = childId;
+    }
+  }
+
+  /// REQ-PER-01: preselección persistida para [accountId], para que los
+  /// tests aserten sin tocar SharedPreferences.
+  String? lastChildIdFor(String? accountId) => _lastChildIds[accountId];
 }
 
 /// Perfil de chico de prueba: los tests de flujo entran a sesión a traves del
@@ -596,11 +626,12 @@ AppDependencies fakeDependencies({
   List<ChildProfile> children = const <ChildProfile>[],
   VoiceProvider? voiceProvider,
   AuthRepository? authRepository,
+  ChildProfileRepository? childProfileRepository,
 }) {
   return AppDependencies(
     categoryRepository: FakeCategoryRepository(categories: categories),
     pictoRepository: FakePictoRepository(pictos: pictos),
-    childProfileRepository: FakeChildProfileRepository(children: children),
+    childProfileRepository: childProfileRepository ?? FakeChildProfileRepository(children: children),
     voiceProvider: voiceProvider ?? FakeVoiceProvider(),
     authRepository: authRepository ?? FakeAuthRepository(),
   );

@@ -802,6 +802,12 @@ abstract class AppLocalizations {
   /// **'Toca tu foto para empezar'**
   String get selectorSubtitle;
 
+  /// No description provided for @selectorLastUsed.
+  ///
+  /// In es, this message translates to:
+  /// **'Último en usar'**
+  String get selectorLastUsed;
+
   /// No description provided for @selectorEmptyTitle.
   ///
   /// In es, this message translates to:

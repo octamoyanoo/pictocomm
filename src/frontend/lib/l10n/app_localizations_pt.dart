@@ -409,6 +409,9 @@ class AppLocalizationsPt extends AppLocalizations {
   String get selectorSubtitle => 'Toque na sua foto para começar';
 
   @override
+  String get selectorLastUsed => 'Usado por último';
+
+  @override
   String get selectorEmptyTitle => 'Ainda não há perfis de criança';
 
   @override

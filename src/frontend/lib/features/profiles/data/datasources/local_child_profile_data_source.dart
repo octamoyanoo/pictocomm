@@ -11,6 +11,15 @@ final class LocalChildProfileDataSource {
 
   static const String _childrenKey = 'pictocomm.children_profiles';
 
+  /// REQ-PER-01: sin cuenta logueada (legacy o gestión) la preselección
+  /// vive en su propia clave, siguiendo el patrón `pictocomm.*`.
+  static const String _lastChildLegacyKey = 'pictocomm.last_child_legacy';
+
+  /// REQ-PER-01: la preselección es POR CUENTA (`pictocomm.last_child_<id>`),
+  /// así entrar con otra cuenta no hereda el chico marcado de la anterior.
+  static String _lastChildKey(String? accountId) =>
+      accountId == null ? _lastChildLegacyKey : 'pictocomm.last_child_$accountId';
+
   Future<List<ChildProfileModel>> loadChildren() async {
     final prefs = await SharedPreferences.getInstance();
     final raw = prefs.getString(_childrenKey);
@@ -32,5 +41,22 @@ final class LocalChildProfileDataSource {
     final prefs = await SharedPreferences.getInstance();
     final encoded = jsonEncode([for (final child in children) child.toJson()]);
     await prefs.setString(_childrenKey, encoded);
+  }
+
+  /// REQ-PER-01: lee el último chico activo de la cuenta (null si no hay).
+  Future<String?> loadLastChildId({String? accountId}) async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString(_lastChildKey(accountId));
+  }
+
+  /// REQ-PER-01: guarda (o limpia, con `null`) el último chico activo.
+  Future<void> saveLastChildId(String? childId, {String? accountId}) async {
+    final prefs = await SharedPreferences.getInstance();
+    final key = _lastChildKey(accountId);
+    if (childId == null) {
+      await prefs.remove(key);
+    } else {
+      await prefs.setString(key, childId);
+    }
   }
 }

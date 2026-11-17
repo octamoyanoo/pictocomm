@@ -62,6 +62,10 @@ final class _SelectorContent extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
+    // REQ-PER-01: la app arranca siempre en el selector (RF2.1), pero la
+    // tarjeta del último chico activo de la cuenta aparece marcada. El
+    // watch también re-marca al volver acá después de un cambio de chico.
+    final lastChildId = context.watch<SessionProvider>().lastChildId;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -92,7 +96,13 @@ final class _SelectorContent extends StatelessWidget {
                   itemCount: children.length,
                   itemBuilder: (context, index) {
                     final child = children[index];
-                    return _ChildPickerCard(child: child, onSelect: () => onSelect(child));
+                    return _ChildPickerCard(
+                      child: child,
+                      onSelect: () => onSelect(child),
+                      // REQ-PER-01: marca visual, no activa la sesión.
+                      isMarked: child.id == lastChildId,
+                      markedLabel: l10n.selectorLastUsed,
+                    );
                   },
                 ),
         ),
@@ -102,16 +112,30 @@ final class _SelectorContent extends StatelessWidget {
 }
 
 final class _ChildPickerCard extends StatelessWidget {
-  const _ChildPickerCard({required this.child, required this.onSelect});
+  const _ChildPickerCard({
+    required this.child,
+    required this.onSelect,
+    required this.isMarked,
+    required this.markedLabel,
+  });
 
   final ChildProfile child;
   final VoidCallback onSelect;
 
+  /// REQ-PER-01: tarjeta marcada como "último chico activo" de la cuenta.
+  final bool isMarked;
+  final String markedLabel;
+
   @override
   Widget build(BuildContext context) {
-    return Material(
+    // El anillo acento va en el shape del Material (mismo radio que el
+    // InkWell) para que no agregue alto dentro de la grilla.
+    final card = Material(
       color: AppColors.surface,
-      borderRadius: BorderRadius.circular(20),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(20),
+        side: isMarked ? const BorderSide(color: AppColors.accent, width: 2.5) : BorderSide.none,
+      ),
       child: InkWell(
         onTap: onSelect,
         borderRadius: BorderRadius.circular(20),
@@ -132,6 +156,36 @@ final class _ChildPickerCard extends StatelessWidget {
           ),
         ),
       ),
+    );
+    if (!isMarked) {
+      return card;
+    }
+    // REQ-PER-01: etiqueta flotada en la esquina (Stack, no en el Column
+    // del centro) para no desbordar la celda de la grilla.
+    return Stack(
+      children: [
+        card,
+        Positioned(
+          top: 8,
+          left: 4,
+          right: 4,
+          child: Center(
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+              decoration: BoxDecoration(
+                color: AppColors.accent,
+                borderRadius: BorderRadius.circular(999),
+              ),
+              child: Text(
+                markedLabel,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(fontSize: 10.5, fontWeight: FontWeight.w600, color: AppColors.surface),
+              ),
+            ),
+          ),
+        ),
+      ],
     );
   }
 }

@@ -140,6 +140,7 @@
 
   "selectorTitle": "Who is communicating today?",
   "selectorSubtitle": "Tap your photo to start",
+  "selectorLastUsed": "Last used",
   "selectorEmptyTitle": "No child profiles yet",
   "selectorEmptySubtitle": "Create the first one to get started",
   "createProfile": "Create profile",

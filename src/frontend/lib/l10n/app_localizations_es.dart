@@ -408,6 +408,9 @@ class AppLocalizationsEs extends AppLocalizations {
   String get selectorSubtitle => 'Toca tu foto para empezar';
 
   @override
+  String get selectorLastUsed => 'Último en usar';
+
+  @override
   String get selectorEmptyTitle => 'Todavía no hay perfiles de niño';
 
   @override
