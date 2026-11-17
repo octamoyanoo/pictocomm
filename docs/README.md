@@ -1,6 +1,6 @@
 # Documentación
 
-- [specs/](specs/) — especificaciones de usuario de cada funcionalidad: qué hace, experiencia y cómo lo hace. El índice general es [`specs/0000-index.md`](specs/0000-index.md); los specs pendientes de revisión viven en `specs/por-aprobar/`.
+- [specs/](specs/) — especificaciones de usuario de cada funcionalidad: qué hace, experiencia y cómo lo hace. El índice general es [`specs/0000-index.md`](specs/0000-index.md); los specs revisados viven en `specs/aprobadas/`.
 - [requerimientos/](requerimientos/) — normativa: requerimientos funcionales y no funcionales, un documento por feature en `requerimientos/implementados/`.
 - [architecture/](architecture/) — decisiones y estructura de la arquitectura.
 - [prototipos/](prototipos/) — wireframes y prototipos visuales.

@@ -56,7 +56,7 @@ flowchart LR
 
 ```text
 docs/architecture/architecture.md   # este archivo (normativo)
-docs/specs/                         # specs de usuario (aprobadas/ y por-aprobar/)
+docs/specs/                         # specs de usuario (aprobadas/)
 docs/requerimientos/implementados/  # normativa REQ-* por feature
 src/frontend/                       # app Flutter (sec. 4)
 src/backend/                        # API Dart/shelf (sec. 5)
@@ -265,7 +265,7 @@ GET    /images/{archivo} y /images/uploads/{archivo}
   specs en `docs/specs/aprobadas/`. Un OpenAPI congelado **PUEDE** agregarse
   en v3; hoy **NO EXISTE** y el codigo es la fuente.
 - CORS: abierto en dev (`*`, metodos GET/POST/PUT/DELETE/OPTIONS). Restringir
-  origenes queda atado a la decision de auth (spec `por-aprobar/acceso.md`).
+  origenes queda atado a la decision de auth (spec `aprobadas/acceso.md`).
 
 ---
 

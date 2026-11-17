@@ -152,7 +152,7 @@ Cobertura de tests: `test/perfiles_flow_test.dart`, `test/child_profile_reposito
 - Edición de perfiles (v2).
 - Persistir la sesión de chico activo entre aperturas de la app.
 - Puertas parentales o PIN para salir del modo niño (decisión del usuario: sin puertas en v1).
-- Cuentas de adulto con contraseña (el acceso actual no valida credenciales: ver [specs/por-aprobar/acceso.md](../../specs/por-aprobar/acceso.md)).
+- Cuentas de adulto con contraseña (cubierta luego por REQ-ACC-01: ver [specs/aprobadas/acceso.md](../../specs/aprobadas/acceso.md)).
 - Foto gestionada desde edición de perfil (v2; hoy solo al crear).
 
 ## 9. Decisiones

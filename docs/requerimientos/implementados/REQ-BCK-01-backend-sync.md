@@ -130,7 +130,7 @@ Cobertura de tests: backend `src/backend/test/` (API y filtros), frontend `test/
 
 - **Subida de pictos custom al backend** (bidireccional, POST/PUT, resolución de conflictos por `updatedAt`): v2.
 - **Sync de perfiles de niño** (`ChildProfile`): v2.
-- **Autenticación / cuentas** (relacionado con `por-aprobar/acceso.md`): sin definir; el backend v1 no tiene auth.
+- **Autenticación / cuentas** (cubierta luego por REQ-ACC-01, spec `aprobadas/acceso.md`): el backend v1 no tiene auth.
 - **Base de datos** (SQLite/MySQL): v1 usa seed en memoria; la migración no debe cambiar el contrato de la API.
 - **Búsqueda integrada de imágenes** (Google): v2, heredado de REQ-CAT-01.
 
