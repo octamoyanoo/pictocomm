@@ -45,7 +45,7 @@ Picto testPicto(String label) {
   return Picto(
     id: 'test-$label',
     label: label,
-    categoryId: 'test-category',
+    categoryIds: ['test-category'],
     source: PictoSource.custom,
     imageUrl: 'data:image/png;base64,iVBORw0KGgo=',
     createdAt: now,

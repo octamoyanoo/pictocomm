@@ -22,7 +22,9 @@ final class PictosLoadedState extends PictosState {
   final List<Picto> pictos;
 
   List<Picto> pictosOf(String categoryId) {
-    return pictos.where((picto) => picto.categoryId == categoryId).toList();
+    // REQ-CAT-02 (RF-3.15): filtro por pertenencia — un picto
+    // multicategoría aparece en cada una de sus categorías.
+    return pictos.where((picto) => picto.belongsTo(categoryId)).toList();
   }
 
   Category? categoryOf(String categoryId) {
@@ -94,10 +96,54 @@ final class PictosProvider extends ChangeNotifier {
     await _refreshAfterDelete();
   }
 
-  Future<void> _refreshAfterDelete() async {
+  /// REQ-CAT-02 (RF-3.16): edita un picto custom y refresca las vistas.
+  Future<void> updatePicto(Picto picto) async {
+    await pictoRepository.updatePicto(picto, childProfileId: sessionProvider.activeChild?.id);
+    await refresh();
+  }
+
+  /// REQ-CAT-02 (RF-3.17): renombra/recolorea una categoría custom y
+  /// refresca las vistas.
+  Future<void> updateCategory(Category category) async {
+    await categoryRepository.updateCategory(category);
+    await refresh();
+  }
+
+  /// Refresca este provider y el catálogo compartido (conteos del home).
+  /// Lo usan el borrado y la edición: los números del home viven en otra
+  /// pantalla del mismo árbol.
+  Future<void> refresh() async {
     await load();
     if (catalogRefresher != null) {
       await catalogRefresher!.load();
     }
+  }
+
+  /// REQ-CAT-02 (RF-3.20): impacto del borrado de una categoría custom —
+  /// cuántos pictos custom se ELIMINAN (quedan sin ninguna categoría y son
+  /// del chico activo, o sin dueño) y cuántos solo PIERDEN esa membresía.
+  /// Mismo criterio que la cascada del datasource (misma regla, dos lados).
+  Future<({int toDelete, int toKeep})> deletionImpact(String categoryId) async {
+    final all = await pictoRepository.getPictos();
+    final activeChildId = sessionProvider.activeChild?.id;
+    var toDelete = 0;
+    var toKeep = 0;
+    for (final picto in all) {
+      if (picto.source != PictoSource.custom || !picto.belongsTo(categoryId)) {
+        continue;
+      }
+      final remaining = picto.categoryIds.where((id) => id != categoryId).length;
+      final belongsToActiveChild = activeChildId == null || picto.childProfileId == null || picto.childProfileId == activeChildId;
+      if (remaining == 0 && belongsToActiveChild) {
+        toDelete++;
+      } else {
+        toKeep++;
+      }
+    }
+    return (toDelete: toDelete, toKeep: toKeep);
+  }
+
+  Future<void> _refreshAfterDelete() async {
+    await refresh();
   }
 }

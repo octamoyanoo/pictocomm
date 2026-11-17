@@ -439,8 +439,14 @@ abstract class AppLocalizations {
   /// No description provided for @deleteCategoryContent.
   ///
   /// In es, this message translates to:
-  /// **'{count, plural, =1{Se borra el catálogo y su contenido (1 pictograma de este niño).} other{Se borra el catálogo y su contenido ({count} pictogramas de este niño).}}'**
+  /// **'{count, plural, =0{Se borra el catálogo. Ningún pictograma de este niño se elimina.} =1{Se borra el catálogo y 1 pictograma de este niño.} other{Se borra el catálogo y {count} pictogramas de este niño.}}'**
   String deleteCategoryContent(int count);
+
+  /// No description provided for @deleteCategoryKeepContent.
+  ///
+  /// In es, this message translates to:
+  /// **'{count, plural, =1{Además, 1 pictograma pierde este catálogo pero se conserva (está en otros).} other{Además, {count} pictogramas pierden este catálogo pero se conservan (están en otros).}}'**
+  String deleteCategoryKeepContent(int count);
 
   /// No description provided for @deleteCatalogTooltip.
   ///
@@ -471,6 +477,54 @@ abstract class AppLocalizations {
   /// In es, this message translates to:
   /// **'Eliminar pictograma'**
   String get deletePictoButton;
+
+  /// No description provided for @editPictoTitle.
+  ///
+  /// In es, this message translates to:
+  /// **'Editar pictograma'**
+  String get editPictoTitle;
+
+  /// No description provided for @editTooltip.
+  ///
+  /// In es, this message translates to:
+  /// **'Editar'**
+  String get editTooltip;
+
+  /// No description provided for @updatePictoButton.
+  ///
+  /// In es, this message translates to:
+  /// **'Guardar cambios'**
+  String get updatePictoButton;
+
+  /// No description provided for @assignChildLabel.
+  ///
+  /// In es, this message translates to:
+  /// **'Niño del pictograma'**
+  String get assignChildLabel;
+
+  /// No description provided for @assignChildOptional.
+  ///
+  /// In es, this message translates to:
+  /// **'Este pictograma todavía no tiene niño asignado (lo ve cualquiera). Podés asignarle uno.'**
+  String get assignChildOptional;
+
+  /// No description provided for @assignChildNone.
+  ///
+  /// In es, this message translates to:
+  /// **'Sin asignar (lo ve cualquier niño)'**
+  String get assignChildNone;
+
+  /// No description provided for @editCategoryTitle.
+  ///
+  /// In es, this message translates to:
+  /// **'Editar catálogo'**
+  String get editCategoryTitle;
+
+  /// No description provided for @editCategoryTooltip.
+  ///
+  /// In es, this message translates to:
+  /// **'Editar catálogo'**
+  String get editCategoryTooltip;
 
   /// No description provided for @addPictoTitle.
   ///
@@ -511,7 +565,7 @@ abstract class AppLocalizations {
   /// No description provided for @categoryRequired.
   ///
   /// In es, this message translates to:
-  /// **'Elegí una categoría'**
+  /// **'Elegí al menos una categoría'**
   String get categoryRequired;
 
   /// No description provided for @saveError.
@@ -541,7 +595,7 @@ abstract class AppLocalizations {
   /// No description provided for @categoryFieldLabel.
   ///
   /// In es, this message translates to:
-  /// **'Categoría'**
+  /// **'Categorías (podés elegir varias)'**
   String get categoryFieldLabel;
 
   /// No description provided for @savePictoButton.

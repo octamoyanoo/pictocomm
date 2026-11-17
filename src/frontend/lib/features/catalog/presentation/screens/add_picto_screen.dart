@@ -8,13 +8,23 @@ import 'package:provider/provider.dart';
 import '../../../../core/error/app_exception.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/utils/data_url.dart';
+import '../../../profiles/domain/entities/child_profile.dart';
 import '../../../profiles/presentation/providers/session_provider.dart';
 import '../../domain/entities/category.dart';
 import '../../domain/entities/picto.dart';
 import '../providers/catalog_provider.dart';
 
+/// REQ-CAT-02 (RNF-3.11): un solo formulario para **crear** y **editar**
+/// pictogramas. Crea sin argumentos (entrada global, RF-3.14); con
+/// [categoryToPreselect] esa categoría viene marcada; con [pictoToEdit]
+/// edita (RF-3.16) y, si es legacy sin dueño, ofrece asignarle chico
+/// (RF-3.19).
 final class AddPictoScreen extends StatefulWidget {
-  const AddPictoScreen({super.key});
+  const AddPictoScreen({this.categoryToPreselect, this.pictoToEdit, super.key});
+
+  final String? categoryToPreselect;
+
+  final Picto? pictoToEdit;
 
   @override
   State<AddPictoScreen> createState() => _AddPictoScreenState();
@@ -25,15 +35,48 @@ final class _AddPictoScreenState extends State<AddPictoScreen> {
 
   final ImagePicker _picker = ImagePicker();
 
+  bool get _editing => widget.pictoToEdit != null;
+
   String? _imageDataUrl;
 
-  String? _categoryId;
+  final Set<String> _selectedCategoryIds = {};
+
+  /// RF-3.19: chico elegido para un picto legacy sin dueño (`null` = sin
+  /// asignar, sigue visible para todos).
+  String? _assignedChildId;
+
+  List<ChildProfile> _children = const [];
 
   String? _errorText;
 
   bool _loadingImage = false;
 
   bool _saving = false;
+
+  @override
+  void initState() {
+    super.initState();
+    final editing = widget.pictoToEdit;
+    if (editing != null) {
+      _labelController.text = editing.label;
+      _imageDataUrl = editing.imageUrl;
+      _selectedCategoryIds.addAll(editing.categoryIds);
+      _assignedChildId = editing.childProfileId;
+      if (editing.childProfileId == null) {
+        _loadChildren();
+      }
+    } else if (widget.categoryToPreselect != null) {
+      _selectedCategoryIds.add(widget.categoryToPreselect!);
+    }
+  }
+
+  Future<void> _loadChildren() async {
+    final children = await context.read<CatalogProvider>().childrenForAssignment();
+    if (!mounted) {
+      return;
+    }
+    setState(() => _children = children);
+  }
 
   @override
   void dispose() {
@@ -171,9 +214,10 @@ final class _AddPictoScreenState extends State<AddPictoScreen> {
   Future<void> _save() async {
     final l10n = AppLocalizations.of(context)!;
     final label = _labelController.text.trim();
-    final categoryId = _categoryId;
-    final childId = context.read<SessionProvider>().activeChild?.id;
-    if (childId == null) {
+    final childId = _editing
+        ? (widget.pictoToEdit!.childProfileId ?? _assignedChildId)
+        : context.read<SessionProvider>().activeChild?.id;
+    if (!_editing && childId == null) {
       setState(() => _errorText = l10n.selectChildFirst);
       return;
     }
@@ -185,7 +229,8 @@ final class _AddPictoScreenState extends State<AddPictoScreen> {
       setState(() => _errorText = l10n.imageRequired);
       return;
     }
-    if (categoryId == null) {
+    // RF-3.13: al menos una categoría.
+    if (_selectedCategoryIds.isEmpty) {
       setState(() => _errorText = l10n.categoryRequired);
       return;
     }
@@ -196,16 +241,21 @@ final class _AddPictoScreenState extends State<AddPictoScreen> {
     try {
       final now = DateTime.now().toUtc();
       final picto = Picto(
-        id: '',
+        id: widget.pictoToEdit?.id ?? '',
         label: label,
-        categoryId: categoryId,
+        categoryIds: [..._selectedCategoryIds],
         source: PictoSource.custom,
         imageUrl: _imageDataUrl,
         childProfileId: childId,
-        createdAt: now,
+        createdAt: widget.pictoToEdit?.createdAt ?? now,
         updatedAt: now,
       );
-      await context.read<CatalogProvider>().createPicto(picto);
+      final provider = context.read<CatalogProvider>();
+      if (_editing) {
+        await provider.updatePicto(picto);
+      } else {
+        await provider.createPicto(picto);
+      }
       if (!mounted) {
         return;
       }
@@ -226,12 +276,16 @@ final class _AddPictoScreenState extends State<AddPictoScreen> {
     final l10n = AppLocalizations.of(context)!;
     final state = context.watch<CatalogProvider>().state;
     final categories = state is CatalogLoadedState ? state.categories : const <Category>[];
+    final showAssignChild = _editing && widget.pictoToEdit!.childProfileId == null;
     return Scaffold(
       body: SafeArea(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            _AddScreenHeader(title: l10n.addPictoTitle, onBack: () => Navigator.of(context).maybePop()),
+            _AddScreenHeader(
+              title: _editing ? l10n.editPictoTitle : l10n.addPictoTitle,
+              onBack: () => Navigator.of(context).maybePop(),
+            ),
             Expanded(
               child: SingleChildScrollView(
                 padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
@@ -272,23 +326,48 @@ final class _AddPictoScreenState extends State<AddPictoScreen> {
                         spacing: 8,
                         runSpacing: 8,
                         children: [
+                          // RF-3.13: chips multi-select (FilterChip).
                           for (final category in categories)
-                            ChoiceChip(
+                            FilterChip(
                               label: Text(category.name),
-                              selected: _categoryId == category.id,
+                              selected: _selectedCategoryIds.contains(category.id),
                               onSelected: (selected) => setState(() {
-                                _categoryId = selected ? category.id : null;
+                                selected ? _selectedCategoryIds.add(category.id) : _selectedCategoryIds.remove(category.id);
                               }),
                               labelStyle: TextStyle(
                                 fontSize: 13,
                                 fontWeight: FontWeight.w600,
-                                color: _categoryId == category.id ? AppColors.accent : AppColors.textSecondary,
+                                color: _selectedCategoryIds.contains(category.id)
+                                    ? AppColors.accent
+                                    : AppColors.textSecondary,
                               ),
                               selectedColor: AppColors.accentLight,
                               showCheckmark: false,
                             ),
                         ],
                       ),
+                    // RF-3.19: asignación de dueño para pictos legacy.
+                    if (showAssignChild) ...[
+                      const SizedBox(height: 16),
+                      Align(
+                        alignment: Alignment.centerLeft,
+                        child: _FieldLabel(l10n.assignChildLabel),
+                      ),
+                      Text(
+                        l10n.assignChildOptional,
+                        style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
+                      ),
+                      const SizedBox(height: 8),
+                      DropdownButtonFormField<String?>(
+                        initialValue: _assignedChildId,
+                        items: [
+                          DropdownMenuItem<String?>(child: Text(l10n.assignChildNone)),
+                          for (final child in _children)
+                            DropdownMenuItem<String?>(value: child.id, child: Text(child.name)),
+                        ],
+                        onChanged: (value) => setState(() => _assignedChildId = value),
+                      ),
+                    ],
                     if (_errorText != null) ...[
                       const SizedBox(height: 12),
                       Text(_errorText!, style: const TextStyle(fontSize: 13, color: AppColors.error)),
@@ -302,7 +381,7 @@ final class _AddPictoScreenState extends State<AddPictoScreen> {
                               width: 22,
                               child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2.5),
                             )
-                          : Text(l10n.savePictoButton),
+                          : Text(_editing ? l10n.updatePictoButton : l10n.savePictoButton),
                     ),
                   ],
                 ),

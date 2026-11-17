@@ -197,9 +197,22 @@ class AppLocalizationsPt extends AppLocalizations {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
+      other: 'O catálogo e $count pictogramas desta criança são excluídos.',
+      one: 'O catálogo e 1 pictograma desta criança são excluídos.',
+      zero:
+          'O catálogo é excluído. Nenhum pictograma desta criança é removido.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String deleteCategoryKeepContent(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
       other:
-          'O catálogo e seu conteúdo serão excluídos ($count pictogramas desta criança).',
-      one: 'O catálogo e seu conteúdo serão excluídos (1 pictograma desta criança).',
+          'Além disso, $count pictogramas perdem este catálogo, mas são mantidos (estão em outros).',
+      one: 'Além disso, 1 pictograma perde este catálogo, mas é mantido (está em outros).',
     );
     return '$_temp0';
   }
@@ -223,6 +236,31 @@ class AppLocalizationsPt extends AppLocalizations {
   String get deletePictoButton => 'Excluir pictograma';
 
   @override
+  String get editPictoTitle => 'Editar pictograma';
+
+  @override
+  String get editTooltip => 'Editar';
+
+  @override
+  String get updatePictoButton => 'Salvar alterações';
+
+  @override
+  String get assignChildLabel => 'Criança do pictograma';
+
+  @override
+  String get assignChildOptional =>
+      'Este pictograma ainda não tem criança atribuída (qualquer uma o vê). Você pode atribuir uma.';
+
+  @override
+  String get assignChildNone => 'Sem atribuição (qualquer criança o vê)';
+
+  @override
+  String get editCategoryTitle => 'Editar catálogo';
+
+  @override
+  String get editCategoryTooltip => 'Editar catálogo';
+
+  @override
   String get addPictoTitle => 'Novo pictograma';
 
   @override
@@ -243,7 +281,7 @@ class AppLocalizationsPt extends AppLocalizations {
   String get imageRequired => 'Escolha uma imagem';
 
   @override
-  String get categoryRequired => 'Escolha uma categoria';
+  String get categoryRequired => 'Escolha pelo menos uma categoria';
 
   @override
   String get saveError => 'Não foi possível salvar. Tente novamente.';
@@ -259,7 +297,7 @@ class AppLocalizationsPt extends AppLocalizations {
       'Primeiro crie um catálogo para poder salvar pictogramas';
 
   @override
-  String get categoryFieldLabel => 'Categoria';
+  String get categoryFieldLabel => 'Categorias (pode escolher várias)';
 
   @override
   String get savePictoButton => 'Salvar pictograma';

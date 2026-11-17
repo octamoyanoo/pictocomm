@@ -83,8 +83,13 @@ final class LocalPictoRepository implements CategoryRepository, PictoRepository 
         : customPictos.where((picto) => picto.childProfileId == null || picto.childProfileId == childProfileId).toList();
     // REQ-BCK-01 (RF-5.6/RF-5.8): los remotos salen del cache local con la
     // misma regla de visibilidad (hoy llegan sin dueño, visibles para todos).
+    // RF-5.18 (REQ-BCK-02): un remoto con id igual a un custom local se
+    // descarta — gana la copia local del dispositivo dueño.
+    final cachedRemotePictos = await cacheDataSource.loadPictos();
+    final customIds = {for (final picto in visibleCustomPictos) picto.id};
     final remotePictos = [
-      for (final stored in await cacheDataSource.loadPictos()) stored.toEntity(),
+      for (final stored in cachedRemotePictos)
+        if (!customIds.contains(stored.id)) stored.toEntity(),
     ];
     final visibleRemotePictos = childProfileId == null
         ? remotePictos
@@ -93,7 +98,9 @@ final class LocalPictoRepository implements CategoryRepository, PictoRepository 
     if (categoryId == null) {
       return all;
     }
-    return all.where((picto) => picto.categoryId == categoryId).toList();
+    // REQ-CAT-02 (RF-3.15): filtro por pertenencia — un picto
+    // multicategoría aparece en cada una de sus categorías.
+    return all.where((picto) => picto.belongsTo(categoryId)).toList();
   }
 
   @override
@@ -157,6 +164,43 @@ final class LocalPictoRepository implements CategoryRepository, PictoRepository 
     return customDataSource.saveCategory(Category(id: id, name: name, color: category.color, custom: true));
   }
 
+  /// REQ-CAT-02 (RF-3.17): renombra/recolorea una categoría custom sin
+  /// cambiar el id (la pertenencia de los pictos es por id).
+  @override
+  Future<Category> updateCategory(Category category) async {
+    final name = category.name.trim();
+    if (name.isEmpty) {
+      throw const DataSourceException('El nombre de la categoría no puede estar vacío');
+    }
+    final bundledIds = await _bundledCategoryIds();
+    final stored = await customDataSource.loadCategories();
+    final target = stored.where((existing) => existing.id == category.id).firstOrNull;
+    if (target == null) {
+      throw const DataSourceException('La categoría no existe');
+    }
+    // El id no cambia, pero si el nombre nuevo colisiona con el slug de otra
+    // categoría (incluidas las bundled) lo rechazamos: crearla luego sería
+    // imposible (CA-3.19 usa el mismo criterio que createCategory).
+    final newSlug = _slugify(name);
+    if (newSlug != category.id) {
+      final otherIds = <String>{
+        ...bundledIds,
+        for (final existing in stored)
+          if (existing.id != category.id) existing.id,
+      };
+      if (otherIds.contains(newSlug)) {
+        throw DuplicateCatalogException('Ya existe una categoría "$name"');
+      }
+    }
+    return customDataSource.saveCategory(Category(
+      id: category.id,
+      name: name,
+      color: category.color,
+      icon: target.icon,
+      custom: true,
+    ));
+  }
+
   @override
   Future<Picto> createPicto(Picto picto) async {
     final label = picto.label.trim();
@@ -166,17 +210,61 @@ final class LocalPictoRepository implements CategoryRepository, PictoRepository 
     if (picto.imageUrl == null || picto.imageUrl!.isEmpty) {
       throw const DataSourceException('Elegí una imagen para el pictograma');
     }
+    // REQ-CAT-02 (RF-3.13): al menos una categoría.
+    if (picto.categoryIds.isEmpty) {
+      throw const DataSourceException('Elegí al menos una categoría para el pictograma');
+    }
     final now = DateTime.now().toUtc();
     final id = 'custom-${now.microsecondsSinceEpoch}-${_idCounter++}';
     return customDataSource.savePicto(
       Picto(
         id: id,
         label: label,
-        categoryId: picto.categoryId,
+        categoryIds: [...picto.categoryIds],
         source: PictoSource.custom,
         imageUrl: picto.imageUrl,
         childProfileId: picto.childProfileId,
         createdAt: now,
+        updatedAt: now,
+      ),
+    );
+  }
+
+  /// REQ-CAT-02 (RF-3.16/RF-3.18/RF-3.19): edita un picto custom. Mismas
+  /// validaciones que crear; solo customs editables y, con sesión, solo los
+  /// del chico activo. El dueño solo cambia si el picto no tenía (RF-3.19,
+  /// asignación de legacy).
+  @override
+  Future<Picto> updatePicto(Picto picto, {String? childProfileId}) async {
+    final label = picto.label.trim();
+    if (label.isEmpty) {
+      throw const DataSourceException('El nombre del pictograma no puede estar vacío');
+    }
+    if (picto.imageUrl == null || picto.imageUrl!.isEmpty) {
+      throw const DataSourceException('Elegí una imagen para el pictograma');
+    }
+    if (picto.categoryIds.isEmpty) {
+      throw const DataSourceException('Elegí al menos una categoría para el pictograma');
+    }
+    final stored = await customDataSource.loadPictos();
+    final target = stored.where((existing) => existing.id == picto.id).firstOrNull;
+    if (target == null || target.source != PictoSource.custom) {
+      throw const DataSourceException('Solo se pueden editar pictogramas personalizados (RF-3.18)');
+    }
+    final activeChild = childProfileId;
+    if (activeChild != null && target.childProfileId != null && target.childProfileId != activeChild) {
+      throw const DataSourceException('El pictograma pertenece a otro chico (RF-3.18)');
+    }
+    final now = DateTime.now().toUtc();
+    return customDataSource.savePicto(
+      Picto(
+        id: target.id,
+        label: label,
+        categoryIds: [...picto.categoryIds],
+        source: PictoSource.custom,
+        imageUrl: picto.imageUrl,
+        childProfileId: target.childProfileId ?? picto.childProfileId,
+        createdAt: target.createdAt,
         updatedAt: now,
       ),
     );
@@ -244,7 +332,7 @@ final class LocalPictoRepository implements CategoryRepository, PictoRepository 
         Picto(
           id: pictoId,
           label: label,
-          categoryId: assetCategory,
+          categoryIds: [assetCategory],
           source: PictoSource.bundled,
           imageUrl: asset,
           createdAt: _epoch,

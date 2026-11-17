@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:pictocomm/l10n/app_localizations.dart';
 import 'package:provider/provider.dart';
 
+import '../../../../core/constants/app_routes.dart';
 import '../../../../core/error/app_exception.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../domain/entities/picto.dart';
@@ -19,6 +20,19 @@ final class PictoDetailScreen extends StatelessWidget {
   bool _allowsDelete(BuildContext context) {
     final activeChildId = context.read<PictosProvider>().sessionProvider.activeChild?.id;
     return activeChildId == null || picto.childProfileId == null || picto.childProfileId == activeChildId;
+  }
+
+  /// REQ-CAT-02 (RF-3.16/RF-3.18): mismas reglas que la papelera — solo
+  /// customs, y con sesión solo los del chico activo (o sin dueño).
+  bool get _allowsEdit => picto.source == PictoSource.custom;
+
+  /// RF-3.16: abre el formulario compartido en modo edición; al volver,
+  /// cierra el detalle (las grillas ya se refrescaron con la versión nueva).
+  Future<void> _edit(BuildContext context) async {
+    await Navigator.of(context).pushNamed(AppRoutes.addPicto, arguments: picto);
+    if (context.mounted) {
+      Navigator.of(context).pop();
+    }
   }
 
   Future<void> _confirmDelete(BuildContext context) async {
@@ -98,6 +112,16 @@ final class PictoDetailScreen extends StatelessWidget {
                   label: Text(
                     AppLocalizations.of(context)!.deletePictoButton,
                     style: const TextStyle(color: AppColors.error),
+                  ),
+                ),
+              // REQ-CAT-02 (RF-3.16): lápiz de edición para customs editables.
+              if (_allowsEdit && _allowsDelete(context))
+                TextButton.icon(
+                  onPressed: () => _edit(context),
+                  icon: const Icon(Icons.edit_outlined, color: Colors.white70),
+                  label: Text(
+                    AppLocalizations.of(context)!.editTooltip,
+                    style: const TextStyle(color: Colors.white70),
                   ),
                 ),
               TextButton.icon(

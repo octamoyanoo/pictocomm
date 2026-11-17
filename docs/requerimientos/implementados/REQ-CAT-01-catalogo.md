@@ -178,11 +178,11 @@ Cobertura de tests: `test/agregar_catalogo_test.dart`, `test/catalog_perfil_test
 
 ## 8. Fuera de alcance
 
-- Editar pictos o categorías personalizadas (renombrar, cambiar imagen/categoría): v2.
-- Buscador integrado de imágenes (Google): backend, v2.
+- Editar pictos o categorías personalizadas (renombrar, cambiar imagen/categoría): v2 → **REQ-CAT-02** (multi-categoría + edición).
+- Buscador integrado de imágenes (Google): backend → REQ-BCK-02+ (v3).
+- Subida de pictos al backend: → **REQ-BCK-02** (bidireccional).
 - Découpage de categorías custom por perfil: v2 (hoy son visibles para todos).
 - Límite de tamaño/compresión por imagen (pregunta abierta #1).
-- Subida de imágenes al backend (los pictos custom son locales; `remote` queda para el backend).
 
 ## 9. Decisiones
 

@@ -33,6 +33,8 @@ final class AppRouter {
           categoryRepository: _dependencies.categoryRepository,
           pictoRepository: _dependencies.pictoRepository,
           sessionProvider: session,
+          // REQ-CAT-02 (RF-3.19): para asignar dueño al editar pictos legacy.
+          childProfileRepository: _dependencies.childProfileRepository,
         ),
         _pictosProvider = PictosProvider(
           categoryRepository: _dependencies.categoryRepository,
@@ -113,9 +115,24 @@ final class AppRouter {
         }
         return MaterialPageRoute<void>(builder: (_) => _pictosRoute(PictoDetailScreen(picto: argument)));
       case AppRoutes.addCategory:
-        return MaterialPageRoute<void>(builder: (_) => _catalogRoute(const AddCategoryScreen()));
+        // REQ-CAT-02: sin argumentos crea; con una `Category` edita (RF-3.17).
+        return MaterialPageRoute<void>(
+          builder: (_) => _catalogRoute(
+            AddCategoryScreen(categoryToEdit: settings.arguments is Category ? settings.arguments as Category : null),
+          ),
+        );
       case AppRoutes.addPicto:
-        return MaterialPageRoute<void>(builder: (_) => _catalogRoute(const AddPictoScreen()));
+        // REQ-CAT-02 (RF-3.14/RF-3.16): sin argumentos crea (entrada global);
+        // `Category` pre-selecciona esa categoría; `Picto` edita.
+        final argument = settings.arguments;
+        return MaterialPageRoute<void>(
+          builder: (_) => _catalogRoute(
+            AddPictoScreen(
+              categoryToPreselect: argument is Category ? argument.id : null,
+              pictoToEdit: argument is Picto ? argument : null,
+            ),
+          ),
+        );
       default:
         return MaterialPageRoute<void>(builder: (_) => const _RouteNotFoundScreen());
     }

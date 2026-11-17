@@ -97,12 +97,13 @@ Router buildApiRouter({required CatalogStore store, required String imagesDirect
 /// Serializa un picto en el formato de `PictoModel` del frontend: el `source`
 /// siempre es `remote` y `imageUrl` es absoluta (construida del request), así
 /// `Image.network` la resuelve igual desde localhost que desde un emulador.
+/// REQ-CAT-02 (RNF-3.9): `categoryIds` como lista.
 Map<String, dynamic> _pictoJson(SeedPicto picto, Request request) {
   final base = '${request.requestedUri.scheme}://${request.requestedUri.authority}';
   return <String, dynamic>{
     'id': picto.id,
     'label': picto.label,
-    'categoryId': picto.categoryId,
+    'categoryIds': picto.categoryIds,
     'imageUrl': '$base/images/${picto.image}',
     'source': 'remote',
     'createdAt': picto.createdAt.toUtc().toIso8601String(),

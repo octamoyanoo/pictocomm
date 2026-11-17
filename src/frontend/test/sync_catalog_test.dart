@@ -54,7 +54,7 @@ void main() {
     return PictoModel(
       id: 'remote-$id',
       label: label,
-      categoryId: categoryId,
+      categoryIds: [categoryId],
       imageUrl: 'http://localhost:8080/images/$id.png',
       source: PictoSource.remote,
       createdAt: t1,
@@ -302,7 +302,7 @@ void main() {
       PictoModel(
         id: 'remote-privado',
         label: 'privado',
-        categoryId: 'lugares',
+        categoryIds: ['lugares'],
         imageUrl: 'http://localhost:8080/images/privado.png',
         source: PictoSource.remote,
         createdAt: t1,

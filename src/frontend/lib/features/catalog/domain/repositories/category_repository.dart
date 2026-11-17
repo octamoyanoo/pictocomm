@@ -8,10 +8,19 @@ abstract interface class CategoryRepository {
   /// [DataSourceException] si el nombre queda vacío.
   Future<Category> createCategory(Category category);
 
-  /// Borra una categoría (RF3.9): solo personalizadas, y elimina en cascada
-  /// **solo los pictos de ese chico** en ella ([childProfileId], con sesión
-  /// activa). Sin sesión, la cascada elimina los pictos de la categoría.
-  /// Lanza [DataSourceException] si la categoría no es borrable (incluida) o
-  /// no existe.
+  /// REQ-CAT-02 (RF-3.17): renombra/recolorea una categoría custom sin
+  /// cambiar su id (la pertenencia de los pictos es por id, RF-3.17).
+  /// Lanza [DuplicateCatalogException] si el nombre nuevo colisiona con otra
+  /// categoría y [DataSourceException] si no es editable (incluida) o el
+  /// nombre queda vacío.
+  Future<Category> updateCategory(Category category);
+
+  /// Borra una categoría (RF3.9, cascada multicategoría RF-3.20): quita esa
+  /// membresía de todos los pictos custom; los del chico activo
+  /// ([childProfileId], con sesión) que quedan sin ninguna categoría se
+  /// eliminan en cascada; los de otros chicos sobreviven huérfanos. Sin
+  /// sesión, la cascada elimina todos los que queden sin categoría. Lanza
+  /// [DataSourceException] si la categoría no es borrable (incluida) o no
+  /// existe.
   Future<void> deleteCategory(String id, {String? childProfileId});
 }

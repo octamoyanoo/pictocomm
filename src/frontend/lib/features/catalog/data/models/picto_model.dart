@@ -4,7 +4,7 @@ final class PictoModel {
   const PictoModel({
     required this.id,
     required this.label,
-    required this.categoryId,
+    required this.categoryIds,
     required this.imageUrl,
     required this.source,
     required this.createdAt,
@@ -14,18 +14,21 @@ final class PictoModel {
 
   final String id;
   final String label;
-  final String categoryId;
+  final List<String> categoryIds;
   final String imageUrl;
   final PictoSource source;
   final DateTime createdAt;
   final DateTime updatedAt;
   final String? childProfileId;
 
+  /// REQ-CAT-02 (RNF-3.8): compatibilidad con el formato v1 — si el JSON
+  /// trae `categoryId` (un solo string), se migra a una lista de un
+  /// elemento. El formato nuevo (`categoryIds`) siempre gana si está.
   factory PictoModel.fromJson(Map<String, dynamic> json) {
     return PictoModel(
       id: json['id'] as String,
       label: json['label'] as String,
-      categoryId: json['categoryId'] as String,
+      categoryIds: _parseCategoryIds(json),
       imageUrl: json['imageUrl'] as String,
       source: _parseSource(json['source'] as String),
       createdAt: DateTime.parse(json['createdAt'] as String),
@@ -34,11 +37,23 @@ final class PictoModel {
     );
   }
 
+  static List<String> _parseCategoryIds(Map<String, dynamic> json) {
+    final list = json['categoryIds'];
+    if (list is List<dynamic>) {
+      return [for (final item in list) item as String];
+    }
+    final legacy = json['categoryId'];
+    if (legacy is String) {
+      return [legacy];
+    }
+    throw const FormatException('el picto no trae categoryIds ni categoryId');
+  }
+
   Map<String, dynamic> toJson() {
     return <String, dynamic>{
       'id': id,
       'label': label,
-      'categoryId': categoryId,
+      'categoryIds': categoryIds,
       'imageUrl': imageUrl,
       'source': source.name,
       'createdAt': createdAt.toUtc().toIso8601String(),
@@ -51,7 +66,7 @@ final class PictoModel {
     return PictoModel(
       id: entity.id,
       label: entity.label,
-      categoryId: entity.categoryId,
+      categoryIds: [...entity.categoryIds],
       imageUrl: entity.imageUrl ?? '',
       source: entity.source,
       createdAt: entity.createdAt,
@@ -64,7 +79,7 @@ final class PictoModel {
     return Picto(
       id: id,
       label: label,
-      categoryId: categoryId,
+      categoryIds: [...categoryIds],
       imageUrl: imageUrl,
       source: source,
       createdAt: createdAt,

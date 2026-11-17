@@ -3,10 +3,15 @@ import 'package:pictocomm/l10n/app_localizations.dart';
 import 'package:provider/provider.dart';
 
 import '../../../../core/theme/app_theme.dart';
+import '../../domain/entities/category.dart';
 import '../providers/catalog_provider.dart';
 
+/// REQ-CAT-02 (RF-3.17): crea **o edita** una categoría custom. Con
+/// [categoryToEdit] precarga nombre/color y guarda con el id sin cambiar.
 final class AddCategoryScreen extends StatefulWidget {
-  const AddCategoryScreen({super.key});
+  const AddCategoryScreen({this.categoryToEdit, super.key});
+
+  final Category? categoryToEdit;
 
   @override
   State<AddCategoryScreen> createState() => _AddCategoryScreenState();
@@ -26,9 +31,21 @@ final class _AddCategoryScreenState extends State<AddCategoryScreen> {
 
   final _nameController = TextEditingController();
 
+  bool get _editing => widget.categoryToEdit != null;
+
   bool _saving = false;
 
   String? _errorText;
+
+  @override
+  void initState() {
+    super.initState();
+    final editing = widget.categoryToEdit;
+    if (editing != null) {
+      _nameController.text = editing.name;
+      _selectedColor = editing.color ?? _palette.first;
+    }
+  }
 
   @override
   void dispose() {
@@ -48,11 +65,23 @@ final class _AddCategoryScreenState extends State<AddCategoryScreen> {
       _errorText = null;
     });
     try {
-      final created = await context.read<CatalogProvider>().createCategory(name, _selectedColor);
+      final provider = context.read<CatalogProvider>();
+      if (_editing) {
+        // RF-3.17: el id no cambia; la pertenencia de los pictos es por id.
+        await provider.updateCategory(Category(
+          id: widget.categoryToEdit!.id,
+          name: name,
+          color: _selectedColor,
+          icon: widget.categoryToEdit!.icon,
+          custom: true,
+        ));
+      } else {
+        await provider.createCategory(name, _selectedColor);
+      }
       if (!mounted) {
         return;
       }
-      Navigator.of(context).pop(created);
+      Navigator.of(context).pop();
     } on Object catch (error) {
       if (!mounted) {
         return;
@@ -83,7 +112,10 @@ final class _AddCategoryScreenState extends State<AddCategoryScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            _AddScreenHeader(title: l10n.addCategoryTitle, onBack: () => Navigator.of(context).maybePop()),
+            _AddScreenHeader(
+              title: _editing ? l10n.editCategoryTitle : l10n.addCategoryTitle,
+              onBack: () => Navigator.of(context).maybePop(),
+            ),
             Expanded(
               child: SingleChildScrollView(
                 padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),

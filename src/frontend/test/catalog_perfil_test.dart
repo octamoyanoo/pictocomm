@@ -24,7 +24,7 @@ void main() {
     return Picto(
       id: '',
       label: label,
-      categoryId: categoryId,
+      categoryIds: [categoryId],
       source: PictoSource.custom,
       imageUrl: 'data:image/png;base64,iVBORw0KGgo=',
       childProfileId: childId,

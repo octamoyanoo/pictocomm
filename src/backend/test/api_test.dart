@@ -69,7 +69,8 @@ void main() {
     final casa = pictos.first as Map<String, dynamic>;
     expect(casa['id'], 'remote-lugares-casa');
     expect(casa['label'], 'casa');
-    expect(casa['categoryId'], 'lugares');
+    // REQ-CAT-02 (RNF-3.9): la pertenencia viaja como lista.
+    expect(casa['categoryIds'], ['lugares']);
     // imageUrl absoluta (Image.network del frontend la resuelve directo).
     expect(casa['imageUrl'], '$_base/images/casa.png');
     expect(casa['source'], 'remote');

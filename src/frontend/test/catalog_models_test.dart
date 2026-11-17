@@ -31,7 +31,7 @@ void main() {
     final model = PictoModel.fromJson(const {
       'id': 'agua-001',
       'label': 'Agua',
-      'categoryId': 'bebidas',
+      'categoryIds': ['bebidas'],
       'imageUrl': 'https://cdn.example.com/agua.png',
       'source': 'remote',
       'createdAt': '2026-01-01T00:00:00Z',
@@ -40,7 +40,10 @@ void main() {
     final entity = model.toEntity();
 
     expect(entity.label, 'Agua');
-    expect(entity.categoryId, 'bebidas');
+    // REQ-CAT-02 (RF-3.13): la pertenencia es una lista.
+    expect(entity.categoryIds, ['bebidas']);
+    expect(entity.belongsTo('bebidas'), isTrue);
+    expect(entity.belongsTo('comidas'), isFalse);
     expect(entity.source.name, 'remote');
     expect(entity.createdAt.toUtc(), DateTime.utc(2026, 1, 1));
     expect(entity.updatedAt.toUtc(), DateTime.utc(2026, 1, 10));
@@ -49,5 +52,32 @@ void main() {
     expect(json['id'], 'agua-001');
     expect(json['source'], 'remote');
     expect(json['createdAt'], '2026-01-01T00:00:00.000Z');
+    expect(json['categoryIds'], ['bebidas']);
+  });
+
+  test('PictoModel migra el formato v1 (categoryId único) a categoryIds (RNF-3.8)', () {
+    final migrated = PictoModel.fromJson(const {
+      'id': 'agua-001',
+      'label': 'Agua',
+      'categoryId': 'bebidas',
+      'imageUrl': 'https://cdn.example.com/agua.png',
+      'source': 'remote',
+      'createdAt': '2026-01-01T00:00:00Z',
+      'updatedAt': '2026-01-10T00:00:00Z',
+    });
+    expect(migrated.categoryIds, ['bebidas']);
+
+    // El formato nuevo siempre gana si están ambos.
+    final both = PictoModel.fromJson(const {
+      'id': 'agua-002',
+      'label': 'Agua',
+      'categoryId': 'bebidas',
+      'categoryIds': ['bebidas', 'comidas'],
+      'imageUrl': 'https://cdn.example.com/agua.png',
+      'source': 'remote',
+      'createdAt': '2026-01-01T00:00:00Z',
+      'updatedAt': '2026-01-10T00:00:00Z',
+    });
+    expect(both.categoryIds, ['bebidas', 'comidas']);
   });
 }

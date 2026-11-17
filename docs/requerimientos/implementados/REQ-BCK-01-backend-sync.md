@@ -30,8 +30,8 @@ Implementado y verificado por tests (estado al 2026-11-12):
 | Cache local del remoto | SharedPreferences (claves propias, separadas de las custom) | **Implementado** |
 | Merge en lectura | Categorías y pictos remotos aparecen junto a los locales, sin tocar providers | **Implementado** |
 | Local-first intacto | Las lecturas nunca tocan la red; offline = catálogo local | **Implementado** |
-| Subida de pictos custom | Bidireccional (POST/PUT + conflictos) | Fuera de alcance (v2) |
-| Perfiles en el backend | Sync de `ChildProfile` | Fuera de alcance (v2) |
+| Subida de pictos custom | Bidireccional (POST/PUT + conflictos) | Fuera de alcance → **REQ-BCK-02** |
+| Perfiles en el backend | Sync de `ChildProfile` | Fuera de alcance (v3) |
 
 ## 4. Requerimientos funcionales
 

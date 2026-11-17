@@ -36,16 +36,33 @@ final class _CategoryContent extends StatelessWidget {
   final PictosLoadedState state;
   final Category category;
 
-  /// RF3.9: doble confirmación; si el adulto confirma, se borra la
-  /// categoría con sus pictos y volvemos al home (que recarga compartido).
+  /// RF3.9 con multi-pertenencia (REQ-CAT-02, RF-3.20): doble confirmación
+  /// con el impacto real — cuántos pictos se eliminan (quedan sin ninguna
+  /// categoría y son del chico activo) y cuántos solo pierden esta
+  /// membresía. Si el adulto confirma, se borra la categoría y volvemos al
+  /// home (que recarga compartido).
   Future<void> _confirmDelete(BuildContext context) async {
     final provider = context.read<PictosProvider>();
     final l10n = AppLocalizations.of(context)!;
+    final impact = await provider.deletionImpact(category.id);
+    if (!context.mounted) {
+      return;
+    }
     final first = await showDialog<bool>(
       context: context,
       builder: (_) => AlertDialog(
         title: Text(l10n.deleteCategoryTitle(category.name)),
-        content: Text(l10n.deleteCategoryContent(state.pictosOf(category.id).length)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(l10n.deleteCategoryContent(impact.toDelete)),
+            if (impact.toKeep > 0) ...[
+              const SizedBox(height: 8),
+              Text(l10n.deleteCategoryKeepContent(impact.toKeep)),
+            ],
+          ],
+        ),
         actions: [
           TextButton(onPressed: () => Navigator.of(context).pop(false), child: Text(l10n.cancel)),
           TextButton(onPressed: () => Navigator.of(context).pop(true), child: Text(l10n.next)),
@@ -95,6 +112,7 @@ final class _CategoryContent extends StatelessWidget {
           category: category,
           pictoCount: pictos.length,
           onDelete: (context) => _confirmDelete(context),
+          onEdit: (context) => _edit(context),
         ),
         Expanded(
           child: pictos.isEmpty
@@ -136,14 +154,24 @@ final class _CategoryContent extends StatelessWidget {
   void _openPicto(BuildContext context, Picto picto) {
     Navigator.of(context).pushNamed(AppRoutes.picto, arguments: picto);
   }
+
+  /// REQ-CAT-02 (RF-3.17): abre el formulario de categoría en modo edición;
+  /// al volver, refresca pictos y conteos.
+  Future<void> _edit(BuildContext context) async {
+    await Navigator.of(context).pushNamed(AppRoutes.addCategory, arguments: category);
+    if (context.mounted) {
+      await context.read<PictosProvider>().refresh();
+    }
+  }
 }
 
 final class _CategoryHeader extends StatelessWidget {
-  const _CategoryHeader({required this.category, required this.pictoCount, required this.onDelete});
+  const _CategoryHeader({required this.category, required this.pictoCount, required this.onDelete, required this.onEdit});
 
   final Category category;
   final int pictoCount;
   final Future<void> Function(BuildContext) onDelete;
+  final Future<void> Function(BuildContext) onEdit;
 
   @override
   Widget build(BuildContext context) {
@@ -174,12 +202,19 @@ final class _CategoryHeader extends StatelessWidget {
             ),
           ),
           // RF3.9: solo las categorías creadas por el adulto son borrables.
-          if (category.custom)
+          if (category.custom) ...[
+            // REQ-CAT-02 (RF-3.17): lápiz de edición (nombre/color).
+            IconButton(
+              onPressed: () => onEdit(context),
+              icon: const Icon(Icons.edit_outlined, color: AppColors.textSecondary),
+              tooltip: l10n.editCategoryTooltip,
+            ),
             IconButton(
               onPressed: () => onDelete(context),
               icon: const Icon(Icons.delete_outline, color: AppColors.error),
               tooltip: l10n.deleteCatalogTooltip,
             ),
+          ],
         ],
       ),
     );

@@ -7,7 +7,7 @@
     {
       "id": "remote-lugares-casa",
       "label": "casa",
-      "categoryId": "lugares",
+      "categoryIds": ["lugares"],
       "image": "casa.png",
       "childProfileId": null,
       "createdAt": "2026-11-01T12:00:00.000Z",
@@ -16,7 +16,7 @@
     {
       "id": "remote-lugares-parque",
       "label": "parque",
-      "categoryId": "lugares",
+      "categoryIds": ["lugares"],
       "image": "parque.png",
       "childProfileId": null,
       "createdAt": "2026-11-01T12:00:00.000Z",
@@ -25,7 +25,7 @@
     {
       "id": "remote-lugares-pileta",
       "label": "pileta",
-      "categoryId": "lugares",
+      "categoryIds": ["lugares"],
       "image": "pileta.png",
       "childProfileId": null,
       "createdAt": "2026-11-01T12:00:00.000Z",
@@ -34,7 +34,7 @@
     {
       "id": "remote-lugares-abuela",
       "label": "abuela",
-      "categoryId": "lugares",
+      "categoryIds": ["lugares"],
       "image": "abuela.png",
       "childProfileId": null,
       "createdAt": "2026-11-01T12:00:00.000Z",
@@ -43,7 +43,7 @@
     {
       "id": "remote-lugares-supermercado",
       "label": "supermercado",
-      "categoryId": "lugares",
+      "categoryIds": ["lugares"],
       "image": "supermercado.png",
       "childProfileId": null,
       "createdAt": "2026-11-04T10:00:00.000Z",
@@ -52,7 +52,7 @@
     {
       "id": "remote-rutina-dormir",
       "label": "dormir",
-      "categoryId": "rutina",
+      "categoryIds": ["rutina"],
       "image": "dormir.png",
       "childProfileId": null,
       "createdAt": "2026-11-02T09:00:00.000Z",
@@ -61,7 +61,7 @@
     {
       "id": "remote-rutina-banarse",
       "label": "banarse",
-      "categoryId": "rutina",
+      "categoryIds": ["rutina"],
       "image": "banarse.png",
       "childProfileId": null,
       "createdAt": "2026-11-02T09:00:00.000Z",
@@ -70,7 +70,7 @@
     {
       "id": "remote-rutina-dientes",
       "label": "cepillarse los dientes",
-      "categoryId": "rutina",
+      "categoryIds": ["rutina"],
       "image": "dientes.png",
       "childProfileId": null,
       "createdAt": "2026-11-02T09:00:00.000Z",
@@ -79,7 +79,7 @@
     {
       "id": "remote-alimentos-agua",
       "label": "agua",
-      "categoryId": "alimentos",
+      "categoryIds": ["alimentos"],
       "image": "agua.png",
       "childProfileId": null,
       "createdAt": "2026-11-03T10:00:00.000Z",
@@ -88,7 +88,7 @@
     {
       "id": "remote-emociones-cansado",
       "label": "cansado",
-      "categoryId": "emociones",
+      "categoryIds": ["emociones"],
       "image": "cansado.png",
       "childProfileId": null,
       "createdAt": "2026-11-03T10:00:00.000Z",

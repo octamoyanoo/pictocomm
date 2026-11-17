@@ -40,6 +40,38 @@ final class FakeCategoryRepository implements CategoryRepository {
     return persisted;
   }
 
+  /// REQ-CAT-02 (RF-3.17): renombra/recolorea manteniendo el id. Igual que
+  /// el repo real: nombre vacío y duplicados se rechazan.
+  @override
+  Future<Category> updateCategory(Category category) async {
+    final name = category.name.trim();
+    if (name.isEmpty) {
+      throw const DataSourceException('El nombre de la categoría no puede estar vacío');
+    }
+    final index = _categories.indexWhere((stored) => stored.id == category.id);
+    if (index < 0) {
+      throw const DataSourceException('La categoría no existe');
+    }
+    final stored = _categories[index];
+    if (!stored.custom) {
+      throw const DataSourceException('El catálogo incluido no se puede editar (RF-3.17)');
+    }
+    for (final other in _categories) {
+      if (other.id != category.id && other.name.toLowerCase() == name.toLowerCase()) {
+        throw DuplicateCatalogException('Ya existe una categoría "$name"');
+      }
+    }
+    final updated = Category(
+      id: stored.id,
+      name: name,
+      color: category.color,
+      icon: category.icon,
+      custom: true,
+    );
+    _categories[index] = updated;
+    return updated;
+  }
+
   /// RF3.9: borra la categoría solo si es custom (en fakes, todo lo de la
   /// lista lo es, salvo las seeded explicitas con custom false). El
   /// [childProfileId] se ignora a proposito: la cascada por chico vive en el
@@ -71,7 +103,8 @@ final class FakePictoRepository implements PictoRepository {
     if (categoryId == null) {
       return visible;
     }
-    return visible.where((p) => p.categoryId == categoryId).toList();
+    // REQ-CAT-02 (RF-3.15): filtro por pertenencia (multi-categoría).
+    return visible.where((p) => p.belongsTo(categoryId)).toList();
   }
 
   @override
@@ -93,11 +126,15 @@ final class FakePictoRepository implements PictoRepository {
     if (picto.imageUrl == null || picto.imageUrl!.isEmpty) {
       throw const DataSourceException('Elegí una imagen para el pictograma');
     }
+    // REQ-CAT-02 (RF-3.13): al menos una categoría.
+    if (picto.categoryIds.isEmpty) {
+      throw const DataSourceException('Elegí al menos una categoría para el pictograma');
+    }
     final now = DateTime.now().toUtc();
     final persisted = Picto(
       id: 'custom-${now.microsecondsSinceEpoch}',
       label: picto.label,
-      categoryId: picto.categoryId,
+      categoryIds: [...picto.categoryIds],
       source: PictoSource.custom,
       imageUrl: picto.imageUrl,
       childProfileId: picto.childProfileId,
@@ -105,6 +142,44 @@ final class FakePictoRepository implements PictoRepository {
       updatedAt: now,
     );
     _pictos.add(persisted);
+    return persisted;
+  }
+
+  /// REQ-CAT-02 (RF-3.16/RF-3.18): edición con las mismas reglas que el repo
+  /// real — solo custom, dueño intocable salvo asignación de legacy, y
+  /// `updatedAt` avanzado.
+  @override
+  Future<Picto> updatePicto(Picto picto, {String? childProfileId}) async {
+    final label = picto.label.trim();
+    if (label.isEmpty) {
+      throw const DataSourceException('El nombre del pictograma no puede estar vacío');
+    }
+    if (picto.imageUrl == null || picto.imageUrl!.isEmpty) {
+      throw const DataSourceException('Elegí una imagen para el pictograma');
+    }
+    if (picto.categoryIds.isEmpty) {
+      throw const DataSourceException('Elegí al menos una categoría para el pictograma');
+    }
+    final index = _pictos.indexWhere((stored) => stored.id == picto.id);
+    if (index < 0 || _pictos[index].source != PictoSource.custom) {
+      throw const DataSourceException('Solo se pueden editar pictogramas personalizados (RF-3.18)');
+    }
+    final target = _pictos[index];
+    if (childProfileId != null && target.childProfileId != null && target.childProfileId != childProfileId) {
+      throw const DataSourceException('El pictograma pertenece a otro chico (RF-3.18)');
+    }
+    final now = DateTime.now().toUtc();
+    final persisted = Picto(
+      id: target.id,
+      label: label,
+      categoryIds: [...picto.categoryIds],
+      source: PictoSource.custom,
+      imageUrl: picto.imageUrl,
+      childProfileId: target.childProfileId ?? picto.childProfileId,
+      createdAt: target.createdAt,
+      updatedAt: now,
+    );
+    _pictos[index] = persisted;
     return persisted;
   }
 
@@ -189,7 +264,7 @@ final class FakeRemoteCatalogDataSource implements RemoteCatalogDataSource {
     _throwIfError();
     pictosSinceCalls.add(since);
     return _pictos
-        .where((picto) => categoryId == null || picto.categoryId == categoryId)
+        .where((picto) => categoryId == null || picto.categoryIds.contains(categoryId))
         .where((picto) => since == null || picto.updatedAt.isAfter(since))
         .take(limit)
         .toList();

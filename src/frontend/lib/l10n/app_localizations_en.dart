@@ -196,9 +196,21 @@ class AppLocalizationsEn extends AppLocalizations {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
+      other: 'The catalog and $count pictograms of this child are deleted.',
+      one: 'The catalog and 1 pictogram of this child are deleted.',
+      zero: 'The catalog is deleted. No pictogram of this child is removed.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String deleteCategoryKeepContent(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
       other:
-          'The catalog and its contents will be deleted ($count pictograms of this child).',
-      one: 'The catalog and its contents will be deleted (1 pictogram of this child).',
+          'In addition, $count pictograms lose this catalog but are kept (they live in others).',
+      one: 'In addition, 1 pictogram loses this catalog but is kept (it lives in others).',
     );
     return '$_temp0';
   }
@@ -222,6 +234,31 @@ class AppLocalizationsEn extends AppLocalizations {
   String get deletePictoButton => 'Delete pictogram';
 
   @override
+  String get editPictoTitle => 'Edit pictogram';
+
+  @override
+  String get editTooltip => 'Edit';
+
+  @override
+  String get updatePictoButton => 'Save changes';
+
+  @override
+  String get assignChildLabel => 'Pictogram\'s child';
+
+  @override
+  String get assignChildOptional =>
+      'This pictogram has no child assigned yet (any child sees it). You can assign one.';
+
+  @override
+  String get assignChildNone => 'Unassigned (any child sees it)';
+
+  @override
+  String get editCategoryTitle => 'Edit catalog';
+
+  @override
+  String get editCategoryTooltip => 'Edit catalog';
+
+  @override
   String get addPictoTitle => 'New pictogram';
 
   @override
@@ -242,7 +279,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get imageRequired => 'Pick an image';
 
   @override
-  String get categoryRequired => 'Pick a category';
+  String get categoryRequired => 'Pick at least one category';
 
   @override
   String get saveError => 'Could not save. Please try again.';
@@ -258,7 +295,7 @@ class AppLocalizationsEn extends AppLocalizations {
       'Create a catalog first so you can save pictograms';
 
   @override
-  String get categoryFieldLabel => 'Category';
+  String get categoryFieldLabel => 'Categories (you can pick several)';
 
   @override
   String get savePictoButton => 'Save pictogram';

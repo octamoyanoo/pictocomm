@@ -13,7 +13,7 @@ Category _category(String id, String name) => Category(id: id, name: name);
 Picto _picto(String id, String categoryId, String label) => Picto(
       id: id,
       label: label,
-      categoryId: categoryId,
+      categoryIds: [categoryId],
       source: PictoSource.bundled,
       createdAt: DateTime.fromMillisecondsSinceEpoch(0, isUtc: true),
       updatedAt: DateTime.fromMillisecondsSinceEpoch(0, isUtc: true),

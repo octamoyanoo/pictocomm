@@ -18,11 +18,13 @@ final class SeedCategory {
 ///
 /// `image` es un nombre de archivo dentro de `data/images/`; la API lo expone
 /// como URL absoluta. Las fechas viajan en ISO-8601 UTC (RNF-5.6).
+/// REQ-CAT-02 (RNF-3.9): `categoryIds` es una lista — el picto pertenece a 1
+/// o más categorías; el `categoryId` de v1 se acepta solo para migrar.
 final class SeedPicto {
   const SeedPicto({
     required this.id,
     required this.label,
-    required this.categoryId,
+    required this.categoryIds,
     required this.image,
     required this.createdAt,
     required this.updatedAt,
@@ -31,7 +33,7 @@ final class SeedPicto {
 
   final String id;
   final String label;
-  final String categoryId;
+  final List<String> categoryIds;
   final String image;
   final DateTime createdAt;
   final DateTime updatedAt;
@@ -100,11 +102,13 @@ final class CatalogStore {
     return null;
   }
 
-  /// RF-5.2: filtra por categoría y por `updatedAt` posterior a [since]
-  /// (sync incremental, estricto), y recorta a [limit].
+  /// RF-5.2 con multi-pertenencia (REQ-CAT-02, RF-3.15): filtra por
+  /// pertenencia (un picto multicategoría sale en cada una), por
+  /// `updatedAt` posterior a [since] (sync incremental, estricto) y recorta
+  /// a [limit].
   List<SeedPicto> queryPictos({String? categoryId, DateTime? since, int limit = 100}) {
     return _pictos.where((picto) {
-      if (categoryId != null && picto.categoryId != categoryId) {
+      if (categoryId != null && !picto.categoryIds.contains(categoryId)) {
         return false;
       }
       if (since != null && !picto.updatedAt.isAfter(since)) {
@@ -127,11 +131,25 @@ final class CatalogStore {
     return SeedPicto(
       id: json['id'] as String,
       label: json['label'] as String,
-      categoryId: json['categoryId'] as String,
+      categoryIds: _parseCategoryIds(json),
       image: json['image'] as String,
       childProfileId: json['childProfileId'] as String?,
       createdAt: DateTime.parse(json['createdAt'] as String),
       updatedAt: DateTime.parse(json['updatedAt'] as String),
     );
+  }
+
+  /// REQ-CAT-02 (RNF-3.8): `categoryIds` nuevo; `categoryId` de v1 migra a
+  /// lista de un elemento.
+  static List<String> _parseCategoryIds(Map<String, dynamic> json) {
+    final list = json['categoryIds'];
+    if (list is List<dynamic>) {
+      return [for (final item in list) item as String];
+    }
+    final legacy = json['categoryId'];
+    if (legacy is String) {
+      return [legacy];
+    }
+    throw const FormatException('el picto no trae categoryIds ni categoryId');
   }
 }
