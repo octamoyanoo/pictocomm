@@ -420,6 +420,10 @@ final class LocalPictoRepository implements CategoryRepository, PictoRepository 
         // RF-5.10: backend caído / sin conexión / timeout. La op (y las
         // restantes) quedan en la cola para el próximo flush.
         return;
+      } on FormatException {
+        // Respuesta malformada → mismo tratamiento que backend caído:
+        // la op espera y se reintenta (local-first).
+        return;
       }
       await outboxDataSource.remove(kind: op.kind, op: op.op, id: op.id);
       onUploadEnqueued?.call();

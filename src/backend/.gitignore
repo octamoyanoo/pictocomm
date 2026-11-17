@@ -2,3 +2,8 @@
 .dart_tool/
 .packages
 build/
+
+# Runtime del server (REQ-BCK-02): lo que suben los dispositivos NO es
+# contenido del repo; el seed curado vive en data/seed.json + data/images/
+data/uploads.json
+data/images/uploads/
