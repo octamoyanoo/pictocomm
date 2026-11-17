@@ -51,7 +51,7 @@ final class _CategoryContent extends StatelessWidget {
     final first = await showDialog<bool>(
       context: context,
       builder: (_) => AlertDialog(
-        title: Text(l10n.deleteCategoryTitle(category.name)),
+        title: Text(l10n.deleteCategoryTitle(category.nameFor(l10n.localeName))),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -192,7 +192,7 @@ final class _CategoryHeader extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  category.name,
+                  category.nameFor(Localizations.localeOf(context).languageCode),
                   style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w700, color: AppColors.textPrimary),
                 ),
                 const SizedBox(height: 2),

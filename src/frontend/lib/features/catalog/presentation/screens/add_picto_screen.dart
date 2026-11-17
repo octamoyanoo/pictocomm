@@ -328,7 +328,7 @@ final class _AddPictoScreenState extends State<AddPictoScreen> {
                           // RF-3.13: chips multi-select (FilterChip).
                           for (final category in categories)
                             FilterChip(
-                              label: Text(category.name),
+                              label: Text(category.nameFor(Localizations.localeOf(context).languageCode)),
                               selected: _selectedCategoryIds.contains(category.id),
                               onSelected: (selected) => setState(() {
                                 selected ? _selectedCategoryIds.add(category.id) : _selectedCategoryIds.remove(category.id);

@@ -11,7 +11,7 @@ App Flutter **local-first** para comunicación por imágenes en niños autistas 
 - **Perfiles**: varios niños por dispositivo, sesión activa, último chico preseleccionado en el selector.
 - **Cuentas**: registro/login contra el backend, sesión recordada (la app abre sin conexión con sesión válida), logout.
 - **Backend y sync**: catálogo remoto sincronizado al arrancar (descarga) + subida bidireccional de lo custom (outbox con reintentos, borrado lógico), indicador de sync en modo adulto.
-- **Idioma**: UI en español (default), inglés y portugués; la voz sigue el idioma de la UI.
+- **Idioma**: UI en español (default), inglés y portugués; pictos y categorías del catálogo incluido traducidos a los tres idiomas (la voz dice la etiqueta del idioma activo).
 
 ## Estructura
 
@@ -90,6 +90,7 @@ Flujo: cambiar una funcionalidad = actualizar el REQ primero y luego su spec.
 |---|---|
 | Auth de escritura del backend | Los endpoints de escritura quedan abiertos (v1/v2); el riesgo está aceptado y documentado en REQ-BCK-02 |
 | Idioma de la voz (TTS) | Sigue el idioma de la UI, con fallback a la voz del sistema |
+| Etiquetas del catálogo | Traducidas a es/en/pt (`Picto.labels`/`Category.names`, fallback a la base); los pictos y categorías **custom** del adulto no se traducen |
 | Imágenes custom | Se comprimen al entrar (reescala a máx. 1024px) |
 | Chico activo | La app abre en el selector con el último chico de la cuenta preseleccionado (un tap confirma) |
 | Distribución | Demo local pulida; el backend corre local (sin deploy) |

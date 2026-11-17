@@ -272,7 +272,7 @@ final class _SentenceChip extends StatelessWidget {
                 child: PictoImage(picto: picto),
               ),
               Text(
-                picto.label,
+                picto.labelFor(Localizations.localeOf(context).languageCode),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600),
@@ -328,7 +328,7 @@ final class _CategoryChips extends StatelessWidget {
             Padding(
               padding: const EdgeInsets.only(right: 8),
               child: ChoiceChip(
-                label: Text(category.name),
+                label: Text(category.nameFor(Localizations.localeOf(context).languageCode)),
                 selected: selectedId == category.id,
                 onSelected: (_) => onSelected(category.id),
                 labelStyle: TextStyle(
@@ -405,7 +405,7 @@ final class _PlaySequenceDialogState extends State<_PlaySequenceDialog> {
       try {
         // Timeout de seguridad: si el engine de voz no dispara fin de locución
         // (falla silenciosa del sistema), la frase sigue avanzando igual.
-        await widget.voiceProvider.speak(widget.pictos[i].label).timeout(const Duration(seconds: 6));
+        await widget.voiceProvider.speak(widget.pictos[i].labelFor(widget.languageCode)).timeout(const Duration(seconds: 6));
       } on VoiceException {
         if (mounted) {
           setState(() => _voiceFailed = true);
@@ -455,7 +455,7 @@ final class _PlaySequenceDialogState extends State<_PlaySequenceDialog> {
           ),
           const SizedBox(height: 8),
           Text(
-            picto.label,
+            picto.labelFor(widget.languageCode),
             style: const TextStyle(fontSize: 40, color: Colors.white, fontWeight: FontWeight.w700),
           ),
           if (_voiceFailed) ...[
@@ -518,7 +518,7 @@ final class _PlayChip extends StatelessWidget {
           children: [
             Expanded(child: PictoImage(picto: picto)),
             Text(
-              picto.label,
+              picto.labelFor(Localizations.localeOf(context).languageCode),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600),

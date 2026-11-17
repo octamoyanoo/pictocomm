@@ -34,9 +34,10 @@ final class _PictoCardState extends State<PictoCard> {
 
   @override
   Widget build(BuildContext context) {
+    final label = widget.picto.labelFor(Localizations.localeOf(context).languageCode);
     return Semantics(
       key: _flash ? const Key('picto_highlighted') : null,
-      label: widget.picto.label,
+      label: label,
       button: true,
       child: Material(
         color: Colors.white,
@@ -71,7 +72,7 @@ final class _PictoCardState extends State<PictoCard> {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    widget.picto.label,
+                    label,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: _flash ? AppColors.accent : null),

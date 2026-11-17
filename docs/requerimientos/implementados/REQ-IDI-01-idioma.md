@@ -13,7 +13,8 @@ La app se ofrece en varios idiomas: su interfaz (textos de pantallas, botones, d
 **Fuera de alcance (frontera con los otros REQ):**
 
 - La **voz** del pictograma (TTS) no es parte de este requerimiento: su idioma quedó como pregunta abierta de REQ-COM-01 y se resuelve allí. Que la UI esté en un idioma no condiciona el idioma de la voz.
-- Los **nombres de pictos, categorías y perfiles** son contenido (del catálogo incluido o ingresado por el adulto), no interfaz: no se traducen.
+- Los **perfiles** de los chicos son contenido ingresado por el adulto: no se traducen.
+- Los pictos y categorías **personalizados** (creados por el adulto) son contenido del adulto: no se traducen (limitación documentada, ver RF-4.9).
 
 ## 2. Estado actual
 
@@ -48,6 +49,8 @@ Implementado y verificado por tests (estado al 2026-11-12):
 | RF-4.6 | El **100% de los textos de interfaz** sale de la centralización de strings: pantallas, botones, diálogos, tooltips, SnackBar y mensajes de error visibles. Queda prohibido el texto hardcodeado en widgets. |
 | RF-4.7 | Agregar un idioma nuevo **no obliga a tocar pantallas ni providers**: se agrega la tabla de traducciones correspondiente y nada más. |
 | RF-4.8 | Los tres idiomas tienen **cobertura completa**: ninguna pantalla casa cabezas (texto mezclado) en ningún idioma soportado. |
+| RF-4.9 | Los **pictos y categorías del catálogo incluido** (bundled y seed del backend) tienen etiquetas traducidas a los tres idiomas: la grilla, la tira de frase y el TTS muestran/dicen la etiqueta del idioma activo. Los pictos y categorías **custom** no se traducen: muestran siempre la etiqueta original con la que los creó el adulto. |
+| RF-4.10 | Agregar una traducción de etiqueta no rompe datos existentes: la etiqueta base (`label`/`name`, español) sigue siendo el **fallback** cuando no hay traducción para el idioma activo (pictos custom, contenido viejo sin traducir). |
 
 ## 5. Requerimientos visuales / no funcionales
 
@@ -58,6 +61,7 @@ Implementado y verificado por tests (estado al 2026-11-12):
 | RNF-4.3 | El locale del `MaterialApp` no depende de la sesión de chico activo: cambiar de niño **no** cambia el idioma, y borrar un perfil **no** lo toca. |
 | RNF-4.4 | SharedPreferences se resuelve **antes del primer frame** (`main`), para que el idioma esté decidido antes de que exista UI. |
 | RNF-4.5 | En tests se usa `LocaleController.ephemeral()` (sin persistencia, español fijo) para determinismo. |
+| RNF-4.6 | Las traducciones viajan **dentro de la entidad** (`Picto.labels` / `Category.names`, mapa `código de idioma → texto`): la resolución es dominio puro (`etiqueta para locale X`), sin depender de `AppLocalizations` en las entidades. |
 
 ## 6. Casos de uso
 
@@ -108,7 +112,32 @@ Implementado y verificado por tests (estado al 2026-11-12):
 
 **Postcondiciones:** La app abre en un idioma legible para la casa; el adulto puede cambiarlo en Perfil.
 
+### UC-01.3 — Usar la app en un idioma no default (etiquetas traducidas)
+
+| | |
+|---|---|
+| **Actor** | Niño (indirecto) / Adulto configura |
+| **Objetivo** | Ver y escuchar los pictos del catálogo en el idioma de la interfaz |
+| **Precondiciones** | Idioma activo distinto de español (en/pt) |
+| **Disparador** | El niño navega categorías o arma una frase |
+
+**Flujo principal:**
+1. La grilla de categoría muestra los pictos con su etiqueta traducida (ej. `agua` → `water`/`água`).
+2. El nombre de la categoría en las tabs también está traducido.
+3. Al tocar un picto y darle Play, el TTS dice la etiqueta traducida (la voz ya sigue el idioma de la UI, RF-1.11).
+
+**Flujos alternativos y excepciones:**
+
+| # | Caso | Resultado |
+|---|---|---|
+| 1 | Picto custom sin traducción | Se muestra/dice la etiqueta original (fallback español, RF-4.10) |
+| 2 | Picto del catálogo sin entrada para el idioma | Ídem: cae a la etiqueta base |
+
+**Postcondiciones:** La experiencia completa (UI + contenido del catálogo + voz) está en el idioma activo, salvo contenido custom.
+
 ## 7. Criterios de aceptación
+
+
 
 | ID | Criterio (Given / When / Then) |
 |---|---|
@@ -119,14 +148,15 @@ Implementado y verificado por tests (estado al 2026-11-12):
 | CA-4.5 | **Given** el primer arranque con sistema en otro idioma, **when** la app abre, **then** lo hace en español. |
 | CA-4.6 | **Given** cualquier pantalla en cualquier idioma soportado, **when** se inspecciona el texto, **then** no hay texto hardcodeado ni idiomas mezclados (los tests de cobertura son la primera línea que rompe). |
 | CA-4.7 | **Given** un cambio de chico o un borrado de perfil, **when** se navega, **then** el idioma almacenado no cambia. |
+| CA-4.8 | **Given** la app en inglés o portugués, **when** el niño ve el catálogo del incluido, **then** pictos y categorías muestran su etiqueta traducida y el Play la dice en ese idioma. |
+| CA-4.9 | **Given** un picto o categoría custom (o un contenido sin traducción para el idioma activo), **when** se muestra o se habla, **then** se usa la etiqueta base en español (sin crash ni texto vacío). |
 
 Cobertura de tests: `test/idioma_test.dart`, `test/locale_controller_test.dart`.
 
 ## 8. Fuera de alcance
 
 - Traducir la **voz** del TTS (pregunta abierta de REQ-COM-01, se resuelve allí).
-- Traducir nombres de pictos, categorías y perfiles (contenido, no interfaz).
-- Etiquetas bilingües de pictos del catálogo incluido (pregunta abierta #1, v2).
+- Traducir nombres de pictos, categorías y perfiles **personalizados** (contenido del adulto). Las etiquetas del catálogo incluido ya NO están fuera de alcance: se resolvieron en v3 (RF-4.9/4.10, decisión #7).
 - Localización de formatos de fecha/número (hoy no hay fechas visibles en UI; pendiente #2).
 
 ## 9. Decisiones
@@ -139,3 +169,4 @@ Cobertura de tests: `test/idioma_test.dart`, `test/locale_controller_test.dart`.
 | 4 | Ubicación del controller | Decisión (mi llamada): `LocaleController` en `core/i18n`, transversal como el theme, sin entidad de dominio. |
 | 5 | Reconstrucción al cambiar | Decisión (mi llamada): `Builder` con `watch` sobre el controller reconstruye el `MaterialApp` completo (sin esto, el `MaterialApp` quedaba con el locale viejo). |
 | 6 | Idioma y sesión | Decisión (mi llamada): desacoplados — cambiar de niño no toca el idioma. |
+| 7 | Etiquetas multilingües (cierra pregunta abierta #1) | Decisión (mi llamada, v3): las traducciones viven **dentro de la entidad** (`Picto.labels` / `Category.names`, mapa `idioma → texto`, con `label`/`name` como base español y fallback). El catálogo bundled deja de derivarse solo de nombres de archivo: se agrega un manifiesto JSON en assets con las traducciones. El seed del backend agrega el mismo campo (con `updatedAt` bump-eado para que el sync incremental lo re-descargue). Los **custom** del adulto no se traducen (contenido del adulto) y la búsqueda encuentra por cualquier idioma. Íconos de categoría siguen mapeando por el nombre base español, no por el mostrado. |

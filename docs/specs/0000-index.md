@@ -33,7 +33,7 @@ Listado general de las funcionalidades implementadas en **PictoComm**, con una d
 
 ## Idioma
 
-- [**Idioma de la interfaz (i18n)**](./aprobadas/idioma.md) — La app se ofrece en español (default), inglés y portugués; el adulto elige en la pantalla Perfil y el cambio aplica al instante, sin reiniciar.
+- [**Idioma de la interfaz (i18n)**](./aprobadas/idioma.md) — La app se ofrece en español (default), inglés y portugués; el adulto elige en la pantalla Perfil y el cambio aplica al instante, sin reiniciar. Los pictos y categorías del catálogo incluido van traducidos a los tres idiomas (grilla, tira de frase y TTS), con fallback a la etiqueta base.
 
 ## Backend y sync
 

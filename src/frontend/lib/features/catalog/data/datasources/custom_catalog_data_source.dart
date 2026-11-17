@@ -59,6 +59,7 @@ final class CustomCatalogDataSource {
         source: picto.source,
         imageUrl: picto.imageUrl,
         childProfileId: picto.childProfileId,
+        labels: picto.labels,
         createdAt: picto.createdAt,
         updatedAt: changedAt,
       ));
@@ -99,6 +100,7 @@ final class CustomCatalogDataSource {
       color: category.color,
       icon: category.icon,
       custom: category.custom,
+      names: category.names,
     );
     final models = _upsertById<CategoryModel>(
       [for (final existing in stored) CategoryModel.fromEntity(existing)],
@@ -120,6 +122,7 @@ final class CustomCatalogDataSource {
       source: picto.source,
       imageUrl: picto.imageUrl,
       childProfileId: picto.childProfileId,
+      labels: picto.labels,
       createdAt: picto.createdAt,
       updatedAt: picto.updatedAt,
     );

@@ -82,6 +82,8 @@ flutter:
     - assets/images/emociones/
     - assets/images/juguetes/
     - assets/images/escuela/
+    # REQ-IDI-01 (RF-4.9): traducciones de las etiquetas del catálogo incluido.
+    - assets/catalog_labels.json
 
   # To add assets to your application, add an assets section, like this:
   # assets:

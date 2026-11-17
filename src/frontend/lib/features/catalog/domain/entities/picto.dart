@@ -13,10 +13,19 @@ final class Picto {
     required this.updatedAt,
     this.imageUrl,
     this.childProfileId,
+    this.labels = const {},
   });
 
   final String id;
+
+  /// Etiqueta base (español): fallback y contenido del catálogo/custom.
   final String label;
+
+  /// REQ-IDI-01 (RF-4.9): traducciones de la etiqueta por código de idioma
+  /// (`{'en': 'Water', 'pt': 'Água'}`). El español vive en [label]; este
+  /// mapa es opcional (pictos custom y contenido viejo vienen vacíos) y
+  /// `labelFor` cae al base cuando no hay entrada para el idioma activo.
+  final Map<String, String> labels;
 
   /// REQ-CAT-02 (RF-3.13): un picto pertenece a 1 o más categorías.
   ///
@@ -40,12 +49,28 @@ final class Picto {
   /// RF-3.15: pertenencia — el picto aparece en la categoría si la incluye.
   bool belongsTo(String categoryId) => categoryIds.contains(categoryId);
 
+  /// REQ-IDI-01 (RF-4.9/RF-4.10): etiqueta para el idioma activo, con la
+  /// base en español como fallback (custom, contenido sin traducir).
+  String labelFor(String languageCode) => labels[languageCode] ?? label;
+
+  /// Búsqueda de pictos (RF de gestión): encuentra por la etiqueta del
+  /// idioma activo **o** por cualquier traducción, y también por la base.
+  bool matchesQuery(String query) {
+    final normalized = query.trim().toLowerCase();
+    if (normalized.isEmpty) {
+      return true;
+    }
+    return label.toLowerCase().contains(normalized) ||
+        labels.values.any((label) => label.toLowerCase().contains(normalized));
+  }
+
   Picto copyWith({
     String? label,
     List<String>? categoryIds,
     String? imageUrl,
     String? childProfileId,
     DateTime? updatedAt,
+    Map<String, String>? labels,
   }) {
     return Picto(
       id: id,
@@ -54,6 +79,7 @@ final class Picto {
       source: source,
       imageUrl: imageUrl ?? this.imageUrl,
       childProfileId: childProfileId ?? this.childProfileId,
+      labels: labels ?? this.labels,
       createdAt: createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
     );

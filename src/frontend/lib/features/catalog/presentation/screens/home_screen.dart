@@ -162,7 +162,7 @@ final class _CatalogContent extends StatelessWidget {
         children: [_SearchField(onQueryChanged), const _SectionRow(), _CategoryList(state: state)],
       );
     }
-    final results = state.categories.where((c) => c.name.toLowerCase().contains(query)).toList();
+    final results = state.categories.where((c) => c.matchesQuery(query)).toList();
     if (results.isEmpty) {
       return _CatalogColumn(
         children: [
@@ -310,7 +310,10 @@ final class _CategoryCard extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(category.name, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: AppColors.textPrimary)),
+                  Text(
+                    category.nameFor(Localizations.localeOf(context).languageCode),
+                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: AppColors.textPrimary),
+                  ),
                   const SizedBox(height: 2),
                   Text(
                     AppLocalizations.of(context)!.pictogramaCount(pictoCount),

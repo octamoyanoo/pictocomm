@@ -133,6 +133,7 @@ Router buildApiRouter({
       color: body['color'] as String,
       icon: (body['icon'] as String?) ?? 'category',
       updatedAt: updatedAt,
+      names: _parseTranslationsFromBody(body['names']),
     );
     if (!store.upsertCategory(category)) {
       return _json(403, <String, dynamic>{'error': 'la categoría "$resolvedId" pertenece al seed y no se puede editar'});
@@ -174,6 +175,7 @@ Router buildApiRouter({
       color: (body['color'] as String?) ?? existing.color,
       icon: (body['icon'] as String?) ?? existing.icon,
       updatedAt: updatedAt,
+      names: body.containsKey('names') ? _parseTranslationsFromBody(body['names']) : existing.names,
     );
     store.upsertCategory(updated);
     return _json(200, _categoryJson(updated));
@@ -264,6 +266,7 @@ Router buildApiRouter({
       categoryIds: [for (final categoryId in body['categoryIds'] as List<dynamic>) categoryId as String],
       image: image,
       childProfileId: body['childProfileId'] as String?,
+      labels: _parseTranslationsFromBody(body['labels']),
       createdAt: updatedAt,
       updatedAt: updatedAt,
     );
@@ -323,6 +326,7 @@ Router buildApiRouter({
       categoryIds: categoryIds == null ? null : [for (final categoryId in categoryIds) categoryId as String],
       image: image,
       updatedAt: updatedAt,
+      labels: body.containsKey('labels') ? _parseTranslationsFromBody(body['labels']) : null,
     );
     store.upsertPicto(updated);
     return _json(200, _pictoJson(updated, request));
@@ -438,6 +442,7 @@ Map<String, dynamic> _categoryJson(SeedCategory category) {
     'icon': category.icon,
     'custom': false,
     'deletedAt': category.deletedAt?.toUtc().toIso8601String(),
+    if (category.names.isNotEmpty) 'names': category.names,
   };
 }
 
@@ -459,6 +464,8 @@ Map<String, dynamic> _pictoJson(SeedPicto picto, Request request) {
     'updatedAt': picto.updatedAt.toUtc().toIso8601String(),
     'childProfileId': picto.childProfileId,
     'deletedAt': picto.deletedAt?.toUtc().toIso8601String(),
+    // REQ-IDI-01 (RF-4.9): traducciones de etiquetas, si el item las tiene.
+    if (picto.labels.isNotEmpty) 'labels': picto.labels,
   };
 }
 
@@ -516,6 +523,19 @@ String? _validateCategoryBody(Map<String, dynamic> body) {
     return 'color debe ser hex #RRGGBB';
   }
   return null;
+}
+
+/// REQ-IDI-01 (RF-4.9): traducciones opcionales del cuerpo (`labels` de
+/// pictos / `names` de categorías). Tolerante: si falta o está mal formado
+/// (no es `String → String`) se ignora — no rompe la escritura.
+Map<String, String> _parseTranslationsFromBody(Object? value) {
+  if (value is Map<dynamic, dynamic>) {
+    return {
+      for (final entry in value.entries)
+        if (entry.key is String && entry.value is String) entry.key as String: entry.value as String,
+    };
+  }
+  return const {};
 }
 
 /// Decodifica el base64 y guarda el archivo en `uploads/`. Devuelve el valor

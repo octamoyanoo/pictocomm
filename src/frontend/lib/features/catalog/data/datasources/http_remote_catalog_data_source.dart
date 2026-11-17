@@ -75,6 +75,7 @@ final class HttpRemoteCatalogDataSource implements RemoteCatalogDataSource {
         'id': picto.id,
         'label': picto.label,
         'categoryIds': picto.categoryIds,
+        if (picto.labels.isNotEmpty) 'labels': picto.labels,
         'imageData': imageBase64,
         'imageMime': imageMime,
         'updatedAt': _isoUtc(picto.updatedAt),
@@ -95,6 +96,7 @@ final class HttpRemoteCatalogDataSource implements RemoteCatalogDataSource {
       body: <String, dynamic>{
         'label': picto.label,
         'categoryIds': picto.categoryIds,
+        if (picto.labels.isNotEmpty) 'labels': picto.labels,
         ?(imageBase64 != null ? 'imageData' : null): imageBase64,
         ?(imageMime != null ? 'imageMime' : null): imageMime,
         'updatedAt': _isoUtc(picto.updatedAt),
@@ -128,6 +130,7 @@ final class HttpRemoteCatalogDataSource implements RemoteCatalogDataSource {
         'name': category.name,
         'color': CategoryModel.formatColor(category.color),
         'icon': category.icon,
+        if (category.names.isNotEmpty) 'names': category.names,
         'updatedAt': _isoUtc(DateTime.now().toUtc()),
       },
     );
@@ -145,6 +148,7 @@ final class HttpRemoteCatalogDataSource implements RemoteCatalogDataSource {
       body: <String, dynamic>{
         'name': category.name,
         'color': CategoryModel.formatColor(category.color),
+        if (category.names.isNotEmpty) 'names': category.names,
         'updatedAt': _isoUtc(DateTime.now().toUtc()),
       },
     );

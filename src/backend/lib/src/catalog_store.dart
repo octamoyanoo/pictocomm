@@ -14,12 +14,17 @@ final class SeedCategory {
     required this.icon,
     this.updatedAt,
     this.deletedAt,
+    this.names = const {},
   });
 
   final String id;
   final String name;
   final String color;
   final String icon;
+
+  /// REQ-IDI-01 (RF-4.9): traducciones del nombre por idioma. Opcional:
+  /// uploads viejos y categorías custom no la traen (cae al nombre base).
+  final Map<String, String> names;
 
   /// REQ-BCK-02 (RNF-5.10): versión del item para conflictos
   /// last-write-wins. En el seed es `null` (no aplica: no se edita).
@@ -36,6 +41,7 @@ final class SeedCategory {
     icon: icon,
     updatedAt: updatedAt,
     deletedAt: when,
+    names: names,
   );
 
   SeedCategory withUpdatedAt(DateTime? when) => SeedCategory(
@@ -45,6 +51,7 @@ final class SeedCategory {
     icon: icon,
     updatedAt: when,
     deletedAt: deletedAt,
+    names: names,
   );
 }
 
@@ -65,6 +72,7 @@ final class SeedPicto {
     required this.updatedAt,
     this.childProfileId,
     this.deletedAt,
+    this.labels = const {},
   });
 
   final String id;
@@ -74,6 +82,10 @@ final class SeedPicto {
   final DateTime createdAt;
   final DateTime updatedAt;
   final String? childProfileId;
+
+  /// REQ-IDI-01 (RF-4.9): traducciones de la etiqueta por idioma. Opcional:
+  /// uploads viejos no la traen (cae a la etiqueta base).
+  final Map<String, String> labels;
 
   /// Borrado lógico (RF-5.14): `null` = vigente.
   final DateTime? deletedAt;
@@ -87,6 +99,7 @@ final class SeedPicto {
     String? childProfileId,
     DateTime? updatedAt,
     DateTime? deletedAt,
+    Map<String, String>? labels,
   }) {
     return SeedPicto(
       id: id,
@@ -94,6 +107,7 @@ final class SeedPicto {
       categoryIds: categoryIds ?? this.categoryIds,
       image: image ?? this.image,
       childProfileId: childProfileId ?? this.childProfileId,
+      labels: labels ?? this.labels,
       createdAt: createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
       deletedAt: deletedAt,
@@ -365,6 +379,7 @@ final class CatalogStore {
       'name': category.name,
       'color': category.color,
       'icon': category.icon,
+      if (category.names.isNotEmpty) 'names': category.names,
       'updatedAt': category.updatedAt?.toUtc().toIso8601String(),
       'deletedAt': category.deletedAt?.toUtc().toIso8601String(),
     };
@@ -377,6 +392,7 @@ final class CatalogStore {
       'categoryIds': picto.categoryIds,
       'image': picto.image,
       'childProfileId': picto.childProfileId,
+      if (picto.labels.isNotEmpty) 'labels': picto.labels,
       'createdAt': picto.createdAt.toUtc().toIso8601String(),
       'updatedAt': picto.updatedAt.toUtc().toIso8601String(),
       'deletedAt': picto.deletedAt?.toUtc().toIso8601String(),
@@ -412,6 +428,7 @@ final class CatalogSeed {
       icon: json['icon'] as String,
       updatedAt: _parseDate(json['updatedAt']),
       deletedAt: _parseDate(json['deletedAt']),
+      names: _parseTranslations(json['names']),
     );
   }
 
@@ -425,7 +442,20 @@ final class CatalogSeed {
       createdAt: DateTime.parse(json['createdAt'] as String),
       updatedAt: DateTime.parse(json['updatedAt'] as String),
       deletedAt: _parseDate(json['deletedAt']),
+      labels: _parseTranslations(json['labels']),
     );
+  }
+
+  /// REQ-IDI-01 (RF-4.10): traducciones opcionales — vacío o ausente = sin
+  /// traducir; entradas que no son `String → String` se descartan.
+  static Map<String, String> _parseTranslations(Object? value) {
+    if (value is Map<dynamic, dynamic>) {
+      return {
+        for (final entry in value.entries)
+          if (entry.key is String && entry.value is String) entry.key as String: entry.value as String,
+      };
+    }
+    return const {};
   }
 
   static DateTime? _parseDate(Object? value) {

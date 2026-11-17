@@ -76,7 +76,7 @@ final class _PictogramasContent extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final allPictos = state.pictos;
-    final pictos = query.isEmpty ? allPictos : allPictos.where((picto) => picto.label.toLowerCase().contains(query)).toList();
+    final pictos = query.isEmpty ? allPictos : allPictos.where((picto) => picto.matchesQuery(query)).toList();
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [

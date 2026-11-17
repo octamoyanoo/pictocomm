@@ -56,6 +56,7 @@ final class LocalPictoRepository implements CategoryRepository, PictoRepository 
   @override
   Future<List<Category>> getCategories() async {
     final assets = await localDataSource.bundledImageAssets();
+    final labels = await localDataSource.bundledLabels();
     final categoryIds = <String>{};
     for (final asset in assets) {
       final categoryId = _assetCategory(asset);
@@ -63,7 +64,9 @@ final class LocalPictoRepository implements CategoryRepository, PictoRepository 
         categoryIds.add(categoryId);
       }
     }
-    final bundledCategories = categoryIds.map((id) => Category(id: id, name: _humanize(id))).toList();
+    final bundledCategories = categoryIds
+        .map((id) => Category(id: id, name: _humanize(id), names: labels.categories[id] ?? const {}))
+        .toList();
     // Las categorías persistidas siempre son personalizadas (RF3.9).
     final customCategories = [
       for (final stored in await customDataSource.loadCategories()) Category(
@@ -72,6 +75,7 @@ final class LocalPictoRepository implements CategoryRepository, PictoRepository 
         color: stored.color,
         icon: stored.icon,
         custom: true,
+        names: stored.names,
       ),
     ];
     // REQ-BCK-01 (RF-5.8): el remoto cacheado se mergea por lectura, sin
@@ -83,7 +87,13 @@ final class LocalPictoRepository implements CategoryRepository, PictoRepository 
     final remoteCategories = [
       for (final stored in await cacheDataSource.loadCategories())
         if (!knownCategoryIds.contains(stored.id))
-          Category(id: stored.id, name: stored.name, color: Color(stored.color), icon: stored.icon),
+          Category(
+            id: stored.id,
+            name: stored.name,
+            color: Color(stored.color),
+            icon: stored.icon,
+            names: stored.names,
+          ),
     ];
     return [...bundledCategories, ...customCategories, ...remoteCategories];
   }
@@ -519,6 +529,7 @@ final class LocalPictoRepository implements CategoryRepository, PictoRepository 
       source: PictoSource.custom,
       imageUrl: target.imageUrl,
       childProfileId: target.childProfileId,
+      labels: remote.labels,
       createdAt: target.createdAt,
       updatedAt: remote.updatedAt,
     ));
@@ -581,6 +592,7 @@ final class LocalPictoRepository implements CategoryRepository, PictoRepository 
 
   Future<List<Picto>> _bundledPictos() async {
     final assets = await localDataSource.bundledImageAssets();
+    final labels = await localDataSource.bundledLabels();
     final pictos = <Picto>[];
     for (final asset in assets) {
       final parsed = _parseAsset(asset);
@@ -595,6 +607,7 @@ final class LocalPictoRepository implements CategoryRepository, PictoRepository 
           categoryIds: [assetCategory],
           source: PictoSource.bundled,
           imageUrl: asset,
+          labels: labels.pictos[label] ?? const {},
           createdAt: _epoch,
           updatedAt: _epoch,
         ),

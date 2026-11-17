@@ -95,11 +95,10 @@ void main() {
     final all = await getJson('/api/v1/pictos?since=2026-10-01T00:00:00.000Z');
     expect(all['body']['pictos'], hasLength(13));
 
-    // Exactamente igual al updatedAt de pileta â†’ excluido (estricto).
-    final strict = await getJson('/api/v1/pictos?since=2026-11-01T12:05:00.000Z');
-    final strictIds = (strict['body']['pictos'] as List).map((p) => (p as Map)['id']);
-    expect(strictIds, isNot(contains('remote-lugares-pileta')));
-    expect(strictIds, contains('remote-lugares-abuela'));
+    // Exactamente igual al updatedAt del bump de traducciones (REQ-IDI-01,
+    // todo el seed quedó en 2026-11-15) → vacío: igual es excluido (estricto).
+    final strict = await getJson('/api/v1/pictos?since=2026-11-15T00:00:00.000Z');
+    expect((strict['body']['pictos'] as List), isEmpty);
 
     // DespuÃ©s de todo el seed â†’ vacÃ­o (re-sync sin cambios, CA-5.7).
     final none = await getJson('/api/v1/pictos?since=2026-12-01T00:00:00.000Z');

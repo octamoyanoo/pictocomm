@@ -65,6 +65,61 @@ void main() {
     };
   }
 
+  // ---- REQ-IDI-01 (RF-4.9): traducciones de etiquetas viajan por la API ----
+
+  test('POST con labels: el GET devuelve las traducciones y uploads.json las conserva', () async {
+    final body = uploadBody(id: 'custom-test-agua', label: 'agua')
+      ..['labels'] = {'en': 'Water', 'pt': 'Água'};
+    final created = await callJson('POST', '/api/v1/pictos', body: body);
+    expect(created['status'], 201);
+    expect(created['body']['labels'], {'en': 'Water', 'pt': 'Água'});
+
+    final fetched = await callJson('GET', '/api/v1/pictos/custom-test-agua');
+    expect(fetched['body']['labels'], {'en': 'Water', 'pt': 'Água'});
+
+    // Persistido en uploads.json (sobrevive reinicios, RNF-5.8).
+    final uploads = jsonDecode(File(uploadsPath).readAsStringSync()) as Map<String, dynamic>;
+    final stored = (uploads['pictos'] as List).first as Map<String, dynamic>;
+    expect(stored['labels'], {'en': 'Water', 'pt': 'Água'});
+  });
+
+  test('PUT con labels reemplaza; PUT sin labels conserva; labels malformado se ignora', () async {
+    final created = await callJson('POST', '/api/v1/pictos', body: uploadBody(id: 'custom-test-pan', label: 'pan'));
+    expect(created['status'], 201);
+
+    final put = uploadBody(id: 'custom-test-pan', updatedAt: '2026-11-10T11:00:00.000Z')
+      ..remove('imageData')
+      ..remove('imageMime')
+      ..['labels'] = {'en': 'Bread', 'pt': 'Pão'};
+    final edited = await callJson('PUT', '/api/v1/pictos/custom-test-pan', body: put);
+    expect(edited['status'], 200);
+    expect(edited['body']['labels'], {'en': 'Bread', 'pt': 'Pão'});
+
+    // Sin la clave: la versión ganadora conserva lo que ya tenía.
+    final untouched = uploadBody(id: 'custom-test-pan', updatedAt: '2026-11-10T12:00:00.000Z')
+      ..remove('imageData')
+      ..remove('imageMime');
+    final kept = await callJson('PUT', '/api/v1/pictos/custom-test-pan', body: untouched);
+    expect(kept['status'], 200);
+    expect(kept['body']['labels'], {'en': 'Bread', 'pt': 'Pão'});
+
+    // Malformado (no String → String): se descarta silenciosamente.
+    final broken = uploadBody(id: 'custom-test-pan', updatedAt: '2026-11-10T13:00:00.000Z')
+      ..remove('imageData')
+      ..remove('imageMime')
+      ..['labels'] = {'en': 42};
+    final ignored = await callJson('PUT', '/api/v1/pictos/custom-test-pan', body: broken);
+    expect(ignored['status'], 200);
+    // El mapa malformado se descartó (y arrastró a las válidas): sin clave.
+    expect(ignored['body']['labels'], isNull);
+  });
+
+  test('el seed sirve labels: los pictos traducidos llegan con su mapa (RF-4.9)', () async {
+    final response = await callJson('GET', '/api/v1/pictos/remote-alimentos-agua');
+    expect(response['status'], 200);
+    expect(response['body']['labels'], {'en': 'Water', 'pt': 'Água'});
+  });
+
   test('RF-5.12/CA-5.10: POST /api/v1/pictos responde 201, guarda imagen y queda servible', () async {
     final response = await callJson('POST', '/api/v1/pictos', body: uploadBody(id: 'custom-test-leche'));
     expect(response['status'], 201);

@@ -1,7 +1,7 @@
 {
   "categories": [
-    { "id": "lugares", "name": "Lugares", "color": "#2E86AB", "icon": "place" },
-    { "id": "rutina", "name": "Rutina", "color": "#8E5C46", "icon": "schedule" }
+    { "id": "lugares", "name": "Lugares", "color": "#2E86AB", "icon": "place", "names": { "en": "Places", "pt": "Lugares" } },
+    { "id": "rutina", "name": "Rutina", "color": "#8E5C46", "icon": "schedule", "names": { "en": "Routine", "pt": "Rotina" } }
   ],
   "pictos": [
     {
@@ -10,8 +10,9 @@
       "categoryIds": ["lugares"],
       "image": "casa.png",
       "childProfileId": null,
+      "labels": { "en": "House", "pt": "Casa" },
       "createdAt": "2026-11-01T12:00:00.000Z",
-      "updatedAt": "2026-11-01T12:00:00.000Z"
+      "updatedAt": "2026-11-15T00:00:00.000Z"
     },
     {
       "id": "remote-lugares-parque",
@@ -19,8 +20,9 @@
       "categoryIds": ["lugares"],
       "image": "parque.png",
       "childProfileId": null,
+      "labels": { "en": "Park", "pt": "Parque" },
       "createdAt": "2026-11-01T12:00:00.000Z",
-      "updatedAt": "2026-11-01T12:00:00.000Z"
+      "updatedAt": "2026-11-15T00:00:00.000Z"
     },
     {
       "id": "remote-lugares-pileta",
@@ -28,8 +30,9 @@
       "categoryIds": ["lugares"],
       "image": "pileta.png",
       "childProfileId": null,
+      "labels": { "en": "Pool", "pt": "Piscina" },
       "createdAt": "2026-11-01T12:00:00.000Z",
-      "updatedAt": "2026-11-01T12:05:00.000Z"
+      "updatedAt": "2026-11-15T00:00:00.000Z"
     },
     {
       "id": "remote-lugares-abuela",
@@ -37,8 +40,9 @@
       "categoryIds": ["lugares"],
       "image": "abuela.png",
       "childProfileId": null,
+      "labels": { "en": "Grandma", "pt": "Vovó" },
       "createdAt": "2026-11-01T12:00:00.000Z",
-      "updatedAt": "2026-11-01T12:10:00.000Z"
+      "updatedAt": "2026-11-15T00:00:00.000Z"
     },
     {
       "id": "remote-lugares-supermercado",
@@ -46,8 +50,9 @@
       "categoryIds": ["lugares"],
       "image": "supermercado.png",
       "childProfileId": null,
+      "labels": { "en": "Supermarket", "pt": "Supermercado" },
       "createdAt": "2026-11-04T10:00:00.000Z",
-      "updatedAt": "2026-11-04T10:00:00.000Z"
+      "updatedAt": "2026-11-15T00:00:00.000Z"
     },
     {
       "id": "remote-lugares-hospital",
@@ -55,8 +60,9 @@
       "categoryIds": ["lugares"],
       "image": "hospital.png",
       "childProfileId": null,
+      "labels": { "en": "Hospital", "pt": "Hospital" },
       "createdAt": "2026-11-05T09:00:00.000Z",
-      "updatedAt": "2026-11-05T09:00:00.000Z"
+      "updatedAt": "2026-11-15T00:00:00.000Z"
     },
     {
       "id": "remote-rutina-vestirse",
@@ -64,8 +70,9 @@
       "categoryIds": ["rutina"],
       "image": "vestirse.png",
       "childProfileId": null,
+      "labels": { "en": "Get dressed", "pt": "Vestir-se" },
       "createdAt": "2026-11-05T09:00:00.000Z",
-      "updatedAt": "2026-11-05T09:00:00.000Z"
+      "updatedAt": "2026-11-15T00:00:00.000Z"
     },
     {
       "id": "remote-rutina-manos",
@@ -73,8 +80,9 @@
       "categoryIds": ["rutina"],
       "image": "manos.png",
       "childProfileId": null,
+      "labels": { "en": "Wash hands", "pt": "Lavar as mãos" },
       "createdAt": "2026-11-05T09:00:00.000Z",
-      "updatedAt": "2026-11-05T09:00:00.000Z"
+      "updatedAt": "2026-11-15T00:00:00.000Z"
     },
     {
       "id": "remote-rutina-dormir",
@@ -82,8 +90,9 @@
       "categoryIds": ["rutina"],
       "image": "dormir.png",
       "childProfileId": null,
+      "labels": { "en": "Sleep", "pt": "Dormir" },
       "createdAt": "2026-11-02T09:00:00.000Z",
-      "updatedAt": "2026-11-02T09:00:00.000Z"
+      "updatedAt": "2026-11-15T00:00:00.000Z"
     },
     {
       "id": "remote-rutina-banarse",
@@ -91,8 +100,9 @@
       "categoryIds": ["rutina"],
       "image": "banarse.png",
       "childProfileId": null,
+      "labels": { "en": "Take a bath", "pt": "Tomar banho" },
       "createdAt": "2026-11-02T09:00:00.000Z",
-      "updatedAt": "2026-11-02T09:00:00.000Z"
+      "updatedAt": "2026-11-15T00:00:00.000Z"
     },
     {
       "id": "remote-rutina-dientes",
@@ -100,8 +110,9 @@
       "categoryIds": ["rutina"],
       "image": "dientes.png",
       "childProfileId": null,
+      "labels": { "en": "Brush teeth", "pt": "Escovar os dentes" },
       "createdAt": "2026-11-02T09:00:00.000Z",
-      "updatedAt": "2026-11-03T14:30:00.000Z"
+      "updatedAt": "2026-11-15T00:00:00.000Z"
     },
     {
       "id": "remote-alimentos-agua",
@@ -109,8 +120,9 @@
       "categoryIds": ["alimentos"],
       "image": "agua.png",
       "childProfileId": null,
+      "labels": { "en": "Water", "pt": "Água" },
       "createdAt": "2026-11-03T10:00:00.000Z",
-      "updatedAt": "2026-11-03T10:00:00.000Z"
+      "updatedAt": "2026-11-15T00:00:00.000Z"
     },
     {
       "id": "remote-emociones-cansado",
@@ -118,8 +130,9 @@
       "categoryIds": ["emociones"],
       "image": "cansado.png",
       "childProfileId": null,
+      "labels": { "en": "Tired", "pt": "Cansado" },
       "createdAt": "2026-11-03T10:00:00.000Z",
-      "updatedAt": "2026-11-03T10:00:00.000Z"
+      "updatedAt": "2026-11-15T00:00:00.000Z"
     }
   ]
 }

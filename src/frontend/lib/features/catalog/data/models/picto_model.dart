@@ -11,6 +11,7 @@ final class PictoModel {
     required this.updatedAt,
     this.childProfileId,
     this.deletedAt,
+    this.labels = const {},
   });
 
   final String id;
@@ -21,6 +22,11 @@ final class PictoModel {
   final DateTime createdAt;
   final DateTime updatedAt;
   final String? childProfileId;
+
+  /// REQ-IDI-01 (RF-4.9): traducciones de la etiqueta por idioma. Opcional:
+  /// el cache de SharedPreferences de versiones anteriores (y el outbox
+  /// viejo) no traen el campo; la base `label` siempre está.
+  final Map<String, String> labels;
 
   /// REQ-BCK-02 (RF-5.14): tumba del borrado lógico remoto. Llega por el
   /// sync incremental; el repositorio la usa para purgar el cache y nunca
@@ -41,7 +47,19 @@ final class PictoModel {
       updatedAt: DateTime.parse(json['updatedAt'] as String),
       childProfileId: json['childProfileId'] as String?,
       deletedAt: _parseDate(json['deletedAt']),
+      labels: _parseLabels(json['labels']),
     );
+  }
+
+  /// REQ-IDI-01 (RF-4.10): tolerante — vacío o ausente = sin traducciones.
+  static Map<String, String> _parseLabels(Object? value) {
+    if (value is Map<dynamic, dynamic>) {
+      return {
+        for (final entry in value.entries)
+          if (entry.key is String && entry.value is String) entry.key as String: entry.value as String,
+      };
+    }
+    return const {};
   }
 
   static DateTime? _parseDate(Object? value) {
@@ -73,6 +91,9 @@ final class PictoModel {
       'createdAt': createdAt.toUtc().toIso8601String(),
       'updatedAt': updatedAt.toUtc().toIso8601String(),
       'childProfileId': childProfileId,
+      // REQ-IDI-01: solo si hay traducciones — el JSON de un picto sin
+      // traducir queda igual al de siempre (cache y outbox viejos OK).
+      if (labels.isNotEmpty) 'labels': labels,
       if (deletedAt != null) 'deletedAt': deletedAt!.toUtc().toIso8601String(),
     };
   }
@@ -87,6 +108,7 @@ final class PictoModel {
       createdAt: entity.createdAt,
       updatedAt: entity.updatedAt,
       childProfileId: entity.childProfileId,
+      labels: Map.of(entity.labels),
     );
   }
 
@@ -100,6 +122,7 @@ final class PictoModel {
       createdAt: createdAt,
       updatedAt: updatedAt,
       childProfileId: childProfileId,
+      labels: Map.of(labels),
     );
   }
 

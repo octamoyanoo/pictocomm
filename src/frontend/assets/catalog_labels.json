@@ -1,0 +1,41 @@
+{
+  "categories": {
+    "alimentos": { "en": "Food", "pt": "Comida" },
+    "emociones": { "en": "Feelings", "pt": "Emoções" },
+    "escuela": { "en": "School", "pt": "Escola" },
+    "juguetes": { "en": "Toys", "pt": "Brinquedos" }
+  },
+  "pictos": {
+    "banana": { "en": "Banana", "pt": "Banana" },
+    "galletita": { "en": "Cookie", "pt": "Biscoito" },
+    "huevo": { "en": "Egg", "pt": "Ovo" },
+    "jugo": { "en": "Juice", "pt": "Suco" },
+    "leche": { "en": "Milk", "pt": "Leite" },
+    "manzana": { "en": "Apple", "pt": "Maçã" },
+    "pan": { "en": "Bread", "pt": "Pão" },
+    "queso": { "en": "Cheese", "pt": "Queijo" },
+    "yogur": { "en": "Yogurt", "pt": "Iogurte" },
+    "asustado": { "en": "Scared", "pt": "Assustado" },
+    "cansado": { "en": "Tired", "pt": "Cansado" },
+    "enfermo": { "en": "Sick", "pt": "Doente" },
+    "enojado": { "en": "Angry", "pt": "Bravo" },
+    "feliz": { "en": "Happy", "pt": "Feliz" },
+    "sorprendido": { "en": "Surprised", "pt": "Surpreso" },
+    "tranquilo": { "en": "Calm", "pt": "Tranquilo" },
+    "triste": { "en": "Sad", "pt": "Triste" },
+    "cuaderno": { "en": "Notebook", "pt": "Caderno" },
+    "lapiz": { "es": "lápiz", "en": "Pencil", "pt": "Lápis" },
+    "libro": { "en": "Book", "pt": "Livro" },
+    "mochila": { "en": "Backpack", "pt": "Mochila" },
+    "pinturas": { "en": "Paints", "pt": "Tintas" },
+    "regla": { "en": "Ruler", "pt": "Régua" },
+    "tijeras": { "en": "Scissors", "pt": "Tesoura" },
+    "auto": { "en": "Car", "pt": "Carro" },
+    "bicicleta": { "en": "Bicycle", "pt": "Bicicleta" },
+    "bloques": { "en": "Blocks", "pt": "Blocos" },
+    "dado": { "en": "Dice", "pt": "Dado" },
+    "osito": { "en": "Teddy bear", "pt": "Ursinho" },
+    "pelota": { "en": "Ball", "pt": "Bola" },
+    "tren": { "en": "Train", "pt": "Trem" }
+  }
+}

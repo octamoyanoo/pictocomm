@@ -41,7 +41,7 @@ final class PictoDetailScreen extends StatelessWidget {
     final first = await showDialog<bool>(
       context: context,
       builder: (_) => AlertDialog(
-        title: Text(l10n.deletePictoTitle(picto.label)),
+        title: Text(l10n.deletePictoTitle(picto.labelFor(l10n.localeName))),
         content: Text(l10n.deletePictoContent),
         actions: [
           TextButton(onPressed: () => Navigator.of(context).pop(false), child: Text(l10n.cancel)),
@@ -92,7 +92,7 @@ final class PictoDetailScreen extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             children: [
               Text(
-                picto.label,
+                picto.labelFor(Localizations.localeOf(context).languageCode),
                 textAlign: TextAlign.center,
                 style: const TextStyle(fontSize: 64, fontWeight: FontWeight.w700, color: Colors.white),
               ),
