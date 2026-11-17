@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:pictocomm/app.dart';
 import 'package:pictocomm/core/error/app_exception.dart';
+import 'package:pictocomm/core/i18n/locale_controller.dart';
 import 'package:pictocomm/features/catalog/domain/entities/picto.dart';
 import 'package:pictocomm/features/voice/domain/voice_provider.dart';
 
@@ -14,11 +15,22 @@ final class RecordingVoice implements VoiceProvider {
 
   List<String> get spokenWords => List.unmodifiable(_words);
 
+  final List<String> _languages = [];
+
+  /// Códigos de idioma pedidos a `setLanguage`, en orden (RF1.11).
+  List<String> get requestedLanguages => List.unmodifiable(_languages);
+
   int stops = 0;
 
   void reset() {
     _words.clear();
+    _languages.clear();
     stops = 0;
+  }
+
+  @override
+  Future<void> setLanguage(String languageCode) async {
+    _languages.add(languageCode);
   }
 
   @override
@@ -215,5 +227,41 @@ void main() {
     await tester.pumpAndSettle();
     expect(voice.spokenWords, isEmpty);
     expect(find.text('Toca pictogramas para armar tu frase'), findsOneWidget);
+  });
+
+  testWidgets('RF1.11: Play aplica a la voz el idioma de la interfaz', (tester) async {
+    // Locale forzado a inglés (RF4): la voz debe pedir 'en' antes de hablar.
+    // Con el controller efímero el idioma es determinista y sin storage.
+    final localeController = LocaleController.ephemeral();
+    localeController.setLanguage('en');
+    voice.reset();
+    await tester.pumpWidget(
+      PictoCommApp(
+        dependencies: fakeDependencies(
+          children: [testChildProfile()],
+          pictos: [testPicto('banana')],
+          voiceProvider: voice,
+        ),
+        localeController: localeController,
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byKey(const Key('login_email')), 'casa@pictocomm.app');
+    await tester.enterText(find.byKey(const Key('login_password')), 'secreta123');
+    await tester.tap(find.text('Sign In'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Nina'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(comunicarTab));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('banana'));
+    await tester.pump();
+    await tester.tap(find.byTooltip('Play sentence'));
+    await tester.pumpAndSettle();
+
+    // El idioma se aplica ANTES del primer speak (RF1.11).
+    expect(voice.requestedLanguages, <String>['en']);
+    expect(voice.spokenWords, <String>['banana']);
   });
 }

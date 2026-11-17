@@ -5,6 +5,7 @@ import 'package:pictocomm/l10n/app_localizations.dart';
 import 'package:provider/provider.dart';
 
 import '../../../../core/error/app_exception.dart';
+import '../../../../core/i18n/locale_controller.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/widgets/app_bottom_nav.dart';
 import '../../../voice/domain/voice_provider.dart';
@@ -50,6 +51,8 @@ final class _ComunicarScreenState extends State<ComunicarScreen> {
       builder: (_) => _PlaySequenceDialog(
         pictos: List.of(_sentence),
         voiceProvider: context.read<VoiceProvider>(),
+        // RF1.11: la voz sigue el idioma elegido de la interfaz.
+        languageCode: context.read<LocaleController>().languageCode,
       ),
     );
   }
@@ -364,10 +367,13 @@ final class EmptyCategoryHint extends StatelessWidget {
 /// Cerrar el diálogo detiene la voz de inmediato (RF1: nunca deja la voz
 /// sonando fuera de control).
 final class _PlaySequenceDialog extends StatefulWidget {
-  const _PlaySequenceDialog({required this.pictos, required this.voiceProvider});
+  const _PlaySequenceDialog({required this.pictos, required this.voiceProvider, required this.languageCode});
 
   final List<Picto> pictos;
   final VoiceProvider voiceProvider;
+
+  /// Idioma de la interfaz al momento de abrir el Play (RF1.11).
+  final String languageCode;
 
   @override
   State<_PlaySequenceDialog> createState() => _PlaySequenceDialogState();
@@ -388,6 +394,8 @@ final class _PlaySequenceDialogState extends State<_PlaySequenceDialog> {
   }
 
   Future<void> _play() async {
+    // RF1.11: el idioma de la UI se aplica antes de la primera palabra.
+    await widget.voiceProvider.setLanguage(widget.languageCode);
     for (var i = 0; i < widget.pictos.length; i++) {
       if (_cancelled || !mounted) {
         return;
