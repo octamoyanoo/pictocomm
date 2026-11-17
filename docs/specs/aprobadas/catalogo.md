@@ -18,7 +18,7 @@ Funcionalidad que **describe cómo se ven las categorías y los pictos, cómo el
 2. **Pictogramas** (`/pictogramas`): grilla plana de todos los pictos visibles (2–5 columnas según ancho) con búsqueda por nombre. Tap → detalle.
 3. **Categoría** (`/category`): header con back, nombre, conteo y — **solo si la categoría es custom** — botón papelera. Grilla de pictos de la categoría; si está vacía, texto central.
 4. **Detalle del picto** (`/picto`): fondo negro, label grande, imagen centrada, botón Cerrar y — solo para customs borrables — papelera.
-5. **Nuevo pictograma** (`/add-picto`): tile de imagen (galería / cámara / URL pegada), campo nombre, chips de categoría (o aviso si no hay categorías aún) y botón Guardar con validaciones visibles en rojo.
+5. **Nuevo pictograma** (`/add-picto`): tile de imagen (galería / cámara / URL pegada), campo nombre, chips de categoría (o aviso si no hay categorías aún) y botón Guardar con validaciones visibles en rojo. Toda imagen elegida pasa por el compresor (máx. 1024px, ver punto 2 del flujo).
 6. **Nuevo catálogo** (`/add-category`): nombre, preview con color y paleta fija de 8 colores; Guardar devuelve la categoría creada.
 7. **Borrado**: siempre **doble confirmación** (diálogo 1 "Siguiente" con las consecuencias; diálogo 2 "Conservar" / "Borrar para siempre" en rojo).
 
@@ -32,7 +32,7 @@ Funcionalidad que **describe cómo se ven las categorías y los pictos, cómo el
 | Pictogramas | `lib/features/catalog/presentation/screens/pictogramas_screen.dart` | Grilla plana por `PictosProvider`, búsqueda por `picto.label` |
 | Categoría | `lib/features/catalog/presentation/screens/category_screen.dart` | Recibe `Category` por argumentos de ruta; papelera solo si `category.custom`; al borrar vuelve a home |
 | Detalle | `lib/features/catalog/presentation/screens/picto_detail_screen.dart` | Papelera si `picto.source == custom` y `_allowsDelete` (dueño o modo gestión); bundled nunca |
-| Crear picto | `lib/features/catalog/presentation/screens/add_picto_screen.dart` | Galería/cámara/URL → data URL (`DataUrl.encode/decode` en `lib/core/utils/data_url.dart`); cámara `enabled: !kIsWeb`; validaciones en orden |
+| Crear picto | `lib/features/catalog/presentation/screens/add_picto_screen.dart` | Galería/cámara/URL → compresión (`CustomImageCompressor`, `lib/features/catalog/data/utils/`) → data URL (`DataUrl.encode/decode` en `lib/core/utils/data_url.dart`); cámara `enabled: !kIsWeb`; validaciones en orden |
 | Crear categoría | `lib/features/catalog/presentation/screens/add_category_screen.dart` | Paleta fija de 8; slug del nombre como id; error de duplicado detectado por texto (`'Ya existe'`) → `duplicateCategory` |
 | Card de picto | `lib/features/catalog/presentation/widgets/picto_card.dart` | Render único según `PictoSource` (el `switch` vive aquí) + flash de selección (ver [comunicar.md](./comunicar.md)) |
 | Estado catálogo | `.../presentation/providers/catalog_provider.dart` | Categorías + conteos; `createCategory/createPicto/deletePicto/deleteCategory` (recargan al terminar) |
@@ -46,7 +46,7 @@ Funcionalidad que **describe cómo se ven las categorías y los pictos, cómo el
 ### Flujo paso a paso (crear picto personalizado)
 
 1. El adulto toca (+) → *Nuevo pictograma* → `/add-picto` (recarga `CatalogProvider` en microtask).
-2. Elige imagen: **galería** (`pickImage(maxWidth: 600, imageQuality: 70)` → bytes → data URL, mime por extensión), **cámara** (solo móvil) o **URL pegada** (`http.get` con timeout de 15 s; status ≠ 200 o falla de red → error `urlDownloadError` con la alternativa de guardar la imagen y elegirla de la galería).
+2. Elige imagen: **galería** (`pickImage` → bytes), **cámara** (solo móvil) o **URL pegada** (`http.get` con timeout de 15 s; status ≠ 200 o falla de red → error `urlDownloadError` con la alternativa de guardar la imagen y elegirla de la galería). Los tres caminos pasan por `CustomImageCompressor.compress`: si el lado mayor supera **1024px** se reescala manteniendo aspecto; PNG con transparencia queda PNG, el resto se reencodea JPEG calidad 85 (límite cerrado en el cierre v2, decisión #8 de REQ-CAT-01). Bytes que no decodifican → `DataSourceException`.
 3. Completa nombre y elige categoría (chips deseleccionables; sin categorías, aviso `firstCatalogWarning`).
 4. Guardar valida en orden: chico activo elegido (`selectChildFirst`) → nombre (`nameFieldRequired`) → imagen (`imageRequired`) → categoría (`categoryRequired`).
 5. `CatalogProvider.createPicto` → repo re-valida nombre e imagen, fuerza `source: custom`, `childProfileId` del chico activo, timestamps UTC y genera el id → persiste en SharedPreferences → recarga → `pop`.
@@ -80,7 +80,7 @@ Funcionalidad que **describe cómo se ven las categorías y los pictos, cómo el
 ## Limitaciones conocidas
 
 - **Editar pictos/categorías** (renombrar, cambiar imagen, mover de categoría) es v2.
-- Las imágenes viajan como **data URLs base64 dentro del JSON** de SharedPreferences: el tamaño por imagen está limitado en la práctica por SharedPreferences (pregunta abierta #1 del REQ-CAT-01: límite/compresión aún sin definir).
+- Las imágenes viajan como **data URLs base64 dentro del JSON** de SharedPreferences: el límite práctico quedó cerrado con la compresión al entrar (máx. 1024px; decisión #8 de REQ-CAT-01, tests en `test/custom_image_compressor_test.dart`).
 - La pantalla de pictogramas **no distingue visualmente** bundled vs custom (sin badge): la distinción solo existe en el borrado.
 - El home trata `CatalogFailureState` igual al estado vacío: el usuario no ve un error explícito de carga del catálogo.
 - El buscador integrado de imágenes (Google) queda para el backend (v2); hoy solo galería/cámara/URL.

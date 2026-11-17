@@ -62,7 +62,7 @@ Implementado y verificado por tests (estado al 2026-11-17):
 | RNF-5.10 | Conflictos: last-write-wins por `updatedAt` UTC; sin relojes del server en el dato (el `updatedAt` lo porta el cliente). |
 | RNF-5.11 | El outbox vive en SharedPreferences (claves `pictocomm.outbox_*`, separadas del cache de descarga); el flush corre en background (`unawaited`) y sus errores son silenciosos: la cola persiste para el próximo intento. |
 | RNF-5.12 | El estado de sync es observable (provider) y alimenta la UI; todo texto nuevo va a i18n (es/en/pt). |
-| RNF-5.13 | Sin auth (pendiente `por-aprobar/acceso.md`): los endpoints de escritura quedan abiertos como los de lectura; v3 evaluará token. |
+| RNF-5.13 | Sin auth (decisión del cierre v2): los endpoints de escritura quedan **abiertos por decisión**, igual que los de lectura; es aceptable para el alcance demo local (el backend corre en localhost). Un token para escritura queda como mejora futura (v3), no como deuda abierta de esta versión. |
 | RNF-5.14 | El borrado es **siempre** lógico; ninguna operación destruye datos ya subidos (el archivo de imagen puede quedarse). |
 | RNF-5.15 | Los ids de items subidos mantienen el prefijo `custom-` del cliente; el server no reasigna ids (evita duplicar el picto en el dispositivo dueño tras el primer sync). |
 

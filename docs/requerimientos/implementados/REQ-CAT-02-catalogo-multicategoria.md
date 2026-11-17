@@ -149,7 +149,7 @@ Cobertura de tests: `test/catalog_models_test.dart` (roundtrip + migración JSON
 - Editar elementos del catálogo incluido o remotos.
 - Permisos granulares por categoría ("esta categoría solo la ve X"): sigue las reglas de pertenencia por chico.
 - Buscador integrado de imágenes (Google): backend, REQ-BCK-02+.
-- Límite de tamaño/compresión por imagen (sigue la pregunta abierta de REQ-CAT-01).
+- Límite de tamaño/compresión por imagen: **resuelto** en el cierre v2 (`CustomImageCompressor`, máx. 1024px — ver decisión #8 de REQ-CAT-01), así que la subida viaja comprimida.
 
 ## 9. Decisiones
 

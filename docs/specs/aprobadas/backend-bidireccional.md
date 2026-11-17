@@ -83,7 +83,7 @@ Serialización: lo subido sale como `source: "remote"` con `imageUrl` absoluta y
 
 ## Limitaciones conocidas
 
-- **Sin auth** (pendiente `por-aprobar/acceso.md`): los endpoints de escritura están abiertos como los de lectura; v3 evaluará token.
+- **Sin auth** (decisión del cierre v2): los endpoints de escritura quedan **abiertos por decisión**, igual que los de lectura — aceptable para el alcance demo local. Un token para escritura queda como mejora futura (v3), no como deuda abierta.
 - **Perfiles no se sincronizan** (v3): un picto con dueño viaja con su `childProfileId`; si el otro dispositivo no tiene ese id de perfil, el picto queda invisible ahí hasta el sync de perfiles.
 - **`updatedAt` de categorías usa el reloj del flush**: las categorías custom no llevan timestamp propio; dos ediciones simultáneas de categoría eligen por orden de subida, no por orden de edición.
 - **El PUT re-envía la imagen** (base64) aunque no cambiara: simple, pero gasta tráfico; optimizable con etag/hash.

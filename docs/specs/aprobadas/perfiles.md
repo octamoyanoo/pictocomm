@@ -6,7 +6,7 @@ Funcionalidad que **permite usar la app con uno o más niños: cada dispositivo 
 
 ## Qué hace
 
-- Tras el acceso, la app siempre arranca en el **selector de chico**: una grilla de tarjetas grandes (avatar circular + nombre) donde el niño (o el adulto con el chico en brazos) toca su tarjeta y entra.
+- Tras el acceso, la app siempre arranca en el **selector de chico**: una grilla de tarjetas grandes (avatar circular + nombre) donde el niño (o el adulto con el chico en brazos) toca su tarjeta y entra. La tarjeta del **último chico usado de esa cuenta** aparece marcada (anillo acento + "Último en usar"), sin entrar automático (decisión del cierre v2).
 - El chico elegido queda como **sesión activa**: es un estado a nivel app (no un argumento de ruta), de modo que sobrevive la navegación entre pestañas y define qué pictos personalizados se ven.
 - El **modo adulto** (pestaña Perfil) permite crear perfiles (nombre + color de avatar + foto opcional), listarlos y borrarlos con **doble confirmación**. Borrar un perfil purga en cascada sus pictos personalizados.
 - Local-first: los perfiles se guardan en el dispositivo (SharedPreferences, JSON), sin cuenta ni conexión.
@@ -32,10 +32,11 @@ Funcionalidad que **permite usar la app con uno o más niños: cada dispositivo 
 | Gestión | `lib/features/profiles/presentation/screens/profile_screen.dart` | Lista, idioma (ver [idioma.md](./idioma.md)), `AddChildDialog` y las dos confirmaciones de borrado |
 | Diálogo de creación | `profile_screen.dart` (`AddChildDialog`) | Nombre + paleta `AppColors.avatarPalette` (8 colores) + foto opcional (data URL); devuelve `(nombre, colorARGB, photoDataUrl)` |
 | Avatar | `lib/features/profiles/presentation/widgets/child_avatar.dart` | Muestra la foto si hay; si no, círculo de color con inicial |
-| Sesión activa | `lib/features/profiles/presentation/providers/session_provider.dart` | `activeChild`, `setActiveChild()`, `clearIfDeleted(id)`. Volátil: no se persiste (cada apertura arranca en selector) |
+| Sesión activa | `lib/features/profiles/presentation/providers/session_provider.dart` | `activeChild`, `setActiveChild()` (que persiste el id como último chico de la cuenta, best-effort), `clearIfDeleted(id)` (limpia también la marca), `clear()` (logout: resetea la memoria, conserva la clave por cuenta). Volátil: no reactiva la sesión sola (cada apertura arranca en selector) |
 | Estado de perfiles | `lib/features/profiles/presentation/providers/children_provider.dart` | `ChildrenLoadingState / ChildrenLoadedState / ChildrenFailureState`; `load()`, `createChild()`, `deleteChild()` |
 | Repositorio | `lib/features/profiles/data/repositories/local_child_profile_repository.dart` | Interfaz `ChildProfileRepository` de `domain/`: `getChildren / createChild / updateChild / deleteChild`. Nombre vacío → `DataSourceException`; ids `child-<microsegundos>-<contador>` (contador anti-colisión) |
-| Persistencia | `lib/features/profiles/data/datasources/local_child_profile_data_source.dart` | SharedPreferences clave `pictocomm.children_profiles`, JSON array |
+| Persistencia | `lib/features/profiles/data/datasources/local_child_profile_data_source.dart` | SharedPreferences clave `pictocomm.children_profiles`, JSON array; además `pictocomm.last_child_<accountId>` (+ `_legacy` sin cuenta) con el último chico activo por cuenta |
+| Preselección | `child_selector_screen.dart` + `children_provider.dart` | Al cargar los chicos, el `ChildrenProvider` restaura la marca del último chico (si el chico ya no existe, la limpia); la tarjeta marcada muestra anillo acento + etiqueta `selectorLastUsed` ("Último en usar"). NO entra automático: un tap confirma |
 | Modelo | `lib/features/profiles/data/models/child_profile_model.dart` | JSON: `{ id, name, age?, avatarColorValue? (ARGB int), photoUrl? (data URL) }` — backend-ready con `toJson/fromJson` |
 | Cascada de borrado | `lib/core/di/injector.dart` | `LocalChildProfileRepository` recibe `purgePictosForChild` por composición: borrar un perfil purga sus pictos custom **sin acoplar** la feature profiles al catálogo |
 | Recarga al cambiar chico | `lib/app.dart` | `session.addListener(appRouter.reloadAfterSessionChange)`: al cambiar de chico se recargan `CatalogProvider` y `PictosProvider` |
@@ -68,7 +69,7 @@ Funcionalidad que **permite usar la app con uno o más niños: cada dispositivo 
 
 ## Limitaciones conocidas
 
-- La sesión activa **no se persiste**: cada apertura de app arranca en el selector (decisión v1; pendiente decidir si el login/selector recuerda lo último).
+- La sesión activa **no se reactiva sola**: cada apertura arranca en el selector con el último chico de la cuenta preseleccionado (cerrado en el cierre v2: persistencia del último childId por cuenta, tests en `test/last_child_test.dart`).
 - La **edición de perfiles** es v2 (fuera de alcance); el repositorio ya expone `updateChild` pero la UI no lo usa.
 - El diálogo `AddChildDialog` no muestra error cuando el nombre está vacío (simplemente no envía); es una UX más silenciosa que la de los formularios del catálogo.
 - La edad no se pide en la UI (v1 sin edad); la entidad la conserva opcionalmente para uso futuro.

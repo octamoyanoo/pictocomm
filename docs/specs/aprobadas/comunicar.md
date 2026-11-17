@@ -33,8 +33,8 @@ Funcionalidad que **permite al niño construir una frase tocando pictos y reprod
 | Feedback del toque | `lib/features/catalog/presentation/widgets/picto_card.dart` | Flash autónomo: borde `accent` 2.5px, `AnimatedScale` 1.08, sombra y texto en accent, 450 ms. Key de test `picto_highlighted` (visible solo durante el flash) |
 | Grilla y filtro | `comunicar_screen.dart` (`_CategoryChips`, `EmptyCategoryHint`) | `ChoiceChip` "Todas" + un chip por categoría; categoría sin pictos muestra el hint vacío |
 | Diálogo de reproducción | `comunicar_screen.dart` (`_PlaySequenceDialog`) | Loop palabra por palabra: `setState(_index = i)` + `_scrollTo(i)` (auto-scroll, chip 92px, animación 200 ms easeOut) + `await voiceProvider.speak(label)` |
-| Abstracción de voz | `lib/features/voice/domain/voice_provider.dart` | `VoiceProvider { speak(word) → Future que completa al terminar; stop(); dispose(); }`. Ninguna parte de la UI conoce el mecanismo concreto |
-| Implementación TTS | `lib/features/voice/data/tts_voice_provider.dart` | `TtsVoiceProvider` con `flutter_tts`: idioma preferido de `['es-AR','es-MX','es-ES']`, `speechRate 0.5` (ritmo pausado), `awaitSpeakCompletion(true)` (es lo que permite encadenar). `speak('')` lanza `VoiceException` |
+| Abstracción de voz | `lib/features/voice/domain/voice_provider.dart` | `VoiceProvider { speak(word) → Future que completa al terminar; setLanguage(languageCode); stop(); dispose(); }`. Ninguna parte de la UI conoce el mecanismo concreto (RF-1.11) |
+| Implementación TTS | `lib/features/voice/data/tts_voice_provider.dart` | `TtsVoiceProvider` con `flutter_tts`: `setLanguage('es'|'en'|'pt')` prueba variantes en orden (`es-AR/MX/ES`, `en-US/GB`, `pt-BR/PT`, primero disponible; si ninguna, conserva la voz del sistema sin error), `speechRate 0.5` (ritmo pausado), `awaitSpeakCompletion(true)` (es lo que permite encadenar). `speak('')` lanza `VoiceException` |
 | Inyección de voz | `lib/app.dart` (ruta `/comunicar`) + `lib/core/di/injector.dart` | El `VoiceProvider` se expone como `Provider` **solo en esta ruta**; el composition root decide la implementación (v1: TTS del sistema) |
 | Pictos visibles | `lib/features/catalog/presentation/providers/pictos_provider.dart` | La grilla pinta lo que ve el chico activo (ver [catalogo.md](./catalogo.md)) |
 
@@ -43,15 +43,15 @@ Funcionalidad que **permite al niño construir una frase tocando pictos y reprod
 1. La ruta `/comunicar` envuelve la pantalla con `PictosProvider` (compartido, recargado en microtask) y `Provider<VoiceProvider>.value`.
 2. Cada toque de picto pasa por `PictoCard._handleTap`: dispara el flash (450 ms) y llama al callback de la pantalla, que hace `_sentence.add(picto)` y `setState`.
 3. **Play** con frase vacía está deshabilitado (`onPressed: null`, fondo gris translúcido); con frase abre `_PlaySequenceDialog`.
-4. `initState` del diálogo lanza `_play()`: por cada picto, marca el índice activo, auto-scrollea la tira del diálogo y `await`speak con **timeout de 6 s** por palabra.
+4. `initState` del diálogo lanza `_play()`: primero `setLanguage` con el idioma de la UI (leído del `LocaleController`, decisión #4 de REQ-COM-01) y por cada picto marca el índice activo, auto-scrollea la tira del diálogo y `await`speak con **timeout de 6 s** por palabra.
 5. Si el TTS lanza `VoiceException` o expira el timeout, el diálogo muestra el aviso `voiceUnavailable` y **la frase sigue avanzando** (no se traba).
 6. `dispose` del diálogo hace `unawaited(voiceProvider.stop())` y `_cancelled = true`: cerrar el diálogo corta la voz de inmediato.
 7. La mini-basura llama `onRemoveAt(index)`; el backspace y la basura global son no-ops seguros con frase vacía.
 
 ### Nota sobre la voz
 
-- La voz **nunca es automática**: el modelo es el de la tira de frase de PECS (**construir primero, "hablar" bajo demanda**). Si la UI sonara al tocar o al construir, los tests de RF1.2 rompen — la voz se verifica en tests con un `FakeVoiceProvider` que registra los `speak`.
-- El TTS corre en el dispositivo (offline, sin costo en runtime). Cambiar a un modo híbrido futuro (audios pre-generados con IA para el catálogo incluido + TTS para pictos custom) solo requiere otra implementación de `VoiceProvider` en el composition root: pantallas y providers no se tocan.
+- La voz **nunca es automática**: el modelo es el de la tira de frase de PECS (**construir primero, "hablar" bajo demanda**). Si la UI sonara al tocar o al construir, los tests de RF1.2 rompen — la voz se verifica en tests con un `FakeVoiceProvider` que registra los `speak` y los `setLanguage`.
+- El TTS corre en el dispositivo (offline, sin costo en runtime) y **sigue el idioma de la interfaz** (con fallback silencioso a la voz del sistema). Cambiar a un modo híbrido futuro (audios pre-generados con IA para el catálogo incluido + TTS para pictos custom) solo requiere otra implementación de `VoiceProvider` en el composition root: pantallas y providers no se tocan.
 
 ## Validaciones y casos límite
 
@@ -68,8 +68,8 @@ Funcionalidad que **permite al niño construir una frase tocando pictos y reprod
 
 ## Limitaciones conocidas
 
-- El "karaoke" (picto activo agrandado + auto-scroll durante el Play) existe de facto en `_PlaySequenceDialog` pero sigue pendiente de decisión normativa (pregunta abierta #1 de REQ-COM-01).
-- El idioma del TTS está fijado por código (`es-AR` → `es-MX` → `es-ES`, primero disponible; si ninguno, la voz del sistema): no sigue el idioma de la interfaz ni tiene configuración por perfil (pregunta abierta #2 de REQ-COM-01).
+- El "karaoke" (picto activo agrandado + auto-scroll durante el Play) es **normativo**: fue confirmado en el cierre v2 (decisión #3 de REQ-COM-01).
+- El idioma del TTS **sigue el idioma de la interfaz** (`es`/`en`/`pt`, decisión #4 de REQ-COM-01): antes del primer `speak` del Play, la pantalla le pasa el `languageCode` de la UI a `VoiceProvider.setLanguage()`. Si el dispositivo no tiene una voz de ese idioma instalada, se conserva la voz del sistema **sin error** (fallback silencioso). No hay configuración de voz por perfil.
 - No hay reordenamiento de la frase ni edición de un picto ya agregado (solo quitar).
 - Con la tira scrolleando, los targets de la mini-basura son pequeños: no se ha resuelto el riesgo de toques accidentales anotado en las notas de implementación.
 

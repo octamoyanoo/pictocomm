@@ -160,8 +160,8 @@ Cobertura de tests: `test/perfiles_flow_test.dart`, `test/child_profile_reposito
 | # | Punto | Decisión |
 |---|---|---|
 | 1 | Sesión activa | Decisión (mi llamada): estado a nivel app (`SessionProvider` sobre el `MaterialApp`), no argumento de ruta. |
-| 2 | Persistencia de sesión | Pendiente (pregunta abierta #1): no se persiste; cada apertura arranca en el selector. |
-| 3 | Preselección del último chico | Pendiente (pregunta abierta #2): v1 siempre empieza en selector. |
+| 2 | Persistencia de sesión | Confirmado (usuario, cierre v2): la sesión de chico NO se reactiva sola; cada apertura arranca en el selector. Lo que se persiste es el **último chico activo por cuenta** (`pictocomm.last_child_<accountId>` en SharedPreferences, `legacy` para los sin cuenta) para preseleccionarlo. Pregunta abierta #1 cerrada. |
+| 3 | Preselección del último chico | Confirmado (usuario, cierre v2): la tarjeta del último chico activo de la cuenta aparece **marcada** en el selector (borde acento); NO entra automático: un tap confirma la sesión como siempre. Si el chico fue borrado, la marca se limpia. Pregunta abierta #2 cerrada. |
 | 4 | Puertas parentales | Confirmado (usuario): salida con botón simple visible, sin PIN. |
 | 5 | Edad | Confirmado (usuario): v1 sin edad; la entidad la conserva opcionalmente. |
 | 6 | Cascada de borrado | Decisión (mi llamada): por composición en el composition root, para no acoplar profiles al catálogo. |

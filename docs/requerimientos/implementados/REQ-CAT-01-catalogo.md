@@ -182,7 +182,7 @@ Cobertura de tests: `test/agregar_catalogo_test.dart`, `test/catalog_perfil_test
 - Buscador integrado de imágenes (Google): backend → REQ-BCK-02+ (v3).
 - Subida de pictos al backend: → **REQ-BCK-02** (bidireccional).
 - Découpage de categorías custom por perfil: v2 (hoy son visibles para todos).
-- Límite de tamaño/compresión por imagen (pregunta abierta #1).
+- Límite de tamaño/compresión por imagen: cerrado en el cierre v2 (ver decisión #8).
 
 ## 9. Decisiones
 
@@ -195,3 +195,4 @@ Cobertura de tests: `test/agregar_catalogo_test.dart`, `test/catalog_perfil_test
 | 5 | Cascada de categoría | Decisión (mi llamada): selectiva — solo pictos del chico activo; los sobrevivientes quedan huérfanos de categoría. |
 | 6 | Doble validación de borrado | Decisión (mi llamada): UI + repositorio, por si el estado cambia entre build y tap. |
 | 7 | Formato de almacenamiento | Decisión (mi llamada): data URLs base64 en SharedPreferences (simple y offline; límite de tamaño por definir). |
+| 8 | Límite de imagen custom | Confirmado (usuario, cierre v2): toda imagen custom (galería, cámara o URL bajada) se **comprime al entrar** — reescala a máx. 1024px manteniendo aspecto; PNG con transparencia queda PNG, el resto JPEG calidad 85. Implementado en `CustomImageCompressor` (`lib/features/catalog/data/utils/`), único punto antes de codificar la data URL. Pregunta abierta #1 cerrada. |

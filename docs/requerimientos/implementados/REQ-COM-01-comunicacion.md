@@ -135,7 +135,7 @@ Cobertura de tests: `test/comunicar_flow_test.dart` (RF-1.2 a RF-1.9 y Play desh
 |---|---|---|
 | 1 | Modelo de comunicación | Confirmado (usuario): tira de frase de PECS, construir primero y "hablar" bajo demanda. |
 | 2 | Canal de confirmación del toque | Confirmado (usuario): solo visual; el audio es exclusivo del Play. |
-| 3 | Karaoke durante el Play | Decisión (mi llamada): implementado de facto en el diálogo; sigue pendiente hacerlo normativo (pregunta abierta #1). |
-| 4 | Idioma del TTS | Pendiente (pregunta abierta #2): hoy fijado por código (`es-AR` → `es-MX` → `es-ES`, primero disponible); no sigue el idioma de la UI. |
+| 3 | Karaoke durante el Play | Confirmado (usuario, cierre v2): el karaoke (picto activo agrandado + auto-scroll) es **normativo**: es parte del flujo del Play descrito en [comunicar.md](../../specs/aprobadas/comunicar.md). Pregunta abierta #1 cerrada. |
+| 4 | Idioma del TTS | Confirmado (usuario, cierre v2): la voz **sigue el idioma de la interfaz** (`es`/`en`/`pt`) con fallback silencioso a la voz del sistema si el idioma no está instalado. Se implementó con `setLanguage()` en la interfaz `VoiceProvider` (RF-1.11); la pantalla Comunicar le pasa el `languageCode` del `LocaleController` antes del primer `speak`. Pregunta abierta #2 cerrada. |
 | 5 | Abstracción de voz | Decisión (mi llamada): `VoiceProvider` en `domain/`, inyección en `core/di` (`TtsVoiceProvider` en v1); cambiar de proveedor no toca pantallas ni providers. |
 | 6 | Corte de voz | Decisión (mi llamada): cerrar el diálogo corta la voz de inmediato (garantía del modelo PECS). |
