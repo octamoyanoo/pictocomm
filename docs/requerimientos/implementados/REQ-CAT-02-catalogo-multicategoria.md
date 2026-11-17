@@ -1,7 +1,7 @@
 # REQ-CAT-02 — Pictos multicategoría y edición de custom
 
 **Mockup:** `docs/prototipos/wireframes.pen` → frames `Home`, `Pictogramas`, `Categoría`, `Detalle picto`, `Nuevo pictograma` (nuevo: `Editar picto`, `Editar catálogo` — a definir en implementación)
-**Specs vigentes:** (por aprobar: [`catalogo-multicategoria.md`](../../specs/por-aprobar/catalogo-multicategoria.md))
+**Specs vigentes:** [`catalogo-multicategoria.md`](../../specs/aprobadas/catalogo-multicategoria.md)
 **Archivos implicados:** `lib/features/catalog/domain/entities/picto.dart`, `.../data/models/picto_model.dart`, `.../data/repositories/local_picto_repository.dart`, `.../data/datasources/custom_catalog_data_source.dart`, `.../presentation/screens/add_picto_screen.dart` (+ pantalla de edición), `.../picto_detail_screen.dart`, `.../add_category_screen.dart`, `.../category_screen.dart`, `.../providers/`, `src/backend/` (formato JSON compartido)
 
 ---

@@ -1,8 +1,6 @@
 # Backend bidireccional: subida del catálogo custom (REQ-BCK-02)
 
-> ⚠️ **Pendiente de aprobar:** funcionalidad recién implementada. El requerimiento normativo es [`REQ-BCK-02-backend-bidireccional.md`](../../requerimientos/implementados/REQ-BCK-02-backend-bidireccional.md).
-
-Funcionalidad que **hace que lo creado en la app (pictos y categorías custom) suba a un backend propio, con reintentos y estado visible para el adulto**, en **PictoComm**. Se apoya en el backend de solo descarga ([`backend-sync.md`](../aprobadas/backend-sync.md)) y es una de las funcionalidades listadas en [`0000-index.md`](../0000-index.md).
+Funcionalidad que **hace que lo creado en la app (pictos y categorías custom) suba a un backend propio, con reintentos y estado visible para el adulto**, en **PictoComm**. Se apoya en el backend de solo descarga ([`backend-sync.md`](./backend-sync.md)) y es una de las funcionalidades listadas en [`0000-index.md`](../0000-index.md). El requerimiento normativo es [`REQ-BCK-02-backend-bidireccional.md`](../../requerimientos/implementados/REQ-BCK-02-backend-bidireccional.md).
 
 ---
 

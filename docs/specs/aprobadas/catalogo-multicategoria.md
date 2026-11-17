@@ -1,8 +1,6 @@
 # Pictos multicategoría y edición de custom (REQ-CAT-02)
 
-> ⚠️ **Pendiente de aprobar:** funcionalidad recién implementada. El requerimiento normativo es [`REQ-CAT-02-catalogo-multicategoria.md`](../../requerimientos/implementados/REQ-CAT-02-catalogo-multicategoria.md).
-
-Funcionalidad que **hace que un picto pueda vivir en 1 o más catálogos y que los pictos y categorías custom se puedan editar** en **PictoComm**. Es una de las funcionalidades listadas en [`0000-index.md`](../0000-index.md).
+Funcionalidad que **hace que un picto pueda vivir en 1 o más catálogos y que los pictos y categorías custom se puedan editar** en **PictoComm**. Es una de las funcionalidades listadas en [`0000-index.md`](../0000-index.md). El requerimiento normativo es [`REQ-CAT-02-catalogo-multicategoria.md`](../../requerimientos/implementados/REQ-CAT-02-catalogo-multicategoria.md).
 
 ---
 

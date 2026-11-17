@@ -1,7 +1,7 @@
 # REQ-BCK-02 — Backend bidireccional (subida del catálogo custom)
 
 **Mockup:** sin mockup propio (infraestructura + un indicador discreto en modo adulto)
-**Specs vigentes:** (por aprobar: [`backend-bidireccional.md`](../../specs/por-aprobar/backend-bidireccional.md))
+**Specs vigentes:** [`backend-bidireccional.md`](../../specs/aprobadas/backend-bidireccional.md)
 **Archivos implicados:** `src/backend/bin/server.dart`, `src/backend/lib/src/`, `src/backend/data/` (uploads), `src/backend/test/`, `lib/features/catalog/data/datasources/remote_catalog_data_source.dart`, `.../remote_catalog_cache_data_source.dart` (+ outbox), `.../repositories/local_picto_repository.dart`, `.../presentation/providers/` (estado de sync), `lib/core/di/injector.dart`
 
 ---
