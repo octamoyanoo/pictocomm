@@ -10,6 +10,7 @@ import '../../../../core/theme/app_theme.dart';
 import '../../../../core/utils/data_url.dart';
 import '../../../profiles/domain/entities/child_profile.dart';
 import '../../../profiles/presentation/providers/session_provider.dart';
+import '../../data/utils/custom_image_compressor.dart';
 import '../../domain/entities/category.dart';
 import '../../domain/entities/picto.dart';
 import '../providers/catalog_provider.dart';
@@ -86,7 +87,9 @@ final class _AddPictoScreenState extends State<AddPictoScreen> {
 
   /// RF3.2: menú de fuentes — galería, cámara (solo móvil) o URL web pegada
   /// (RF3.3). En todos los casos los bytes terminan guardados en data URL
-  /// local: el picto funciona offline después de crearse.
+  /// local: el picto funciona offline después de crearse. Todas las fuentes
+  /// pasan por [CustomImageCompressor.compress] (REQ-CAT-01: reescala a
+  /// máx 1024px y comprime) antes de persistirse.
   Future<void> _chooseSource() async {
     final l10n = AppLocalizations.of(context)!;
     final source = await showModalBottomSheet<String>(
@@ -151,8 +154,11 @@ final class _AddPictoScreenState extends State<AddPictoScreen> {
       if (!mounted) {
         return;
       }
+      // REQ-CAT-01 (RF-CAT): la imagen se comprime a máx 1024px antes de
+      // guardarse, tanto para el storage local como para subir al backend.
+      final compressed = CustomImageCompressor.compress(bytes);
       setState(() {
-        _imageDataUrl = DataUrl.encode(bytes, _mimeOf(picked.name));
+        _imageDataUrl = DataUrl.encode(compressed.bytes, compressed.mime);
         _loadingImage = false;
         _errorText = null;
       });
@@ -183,9 +189,13 @@ final class _AddPictoScreenState extends State<AddPictoScreen> {
       if (response.statusCode != 200) {
         throw const DataSourceException('La imagen no se pudo descargar');
       }
-      final mime = (response.headers['content-type'] ?? 'image/jpeg').split(';').first;
+      // REQ-CAT-01 (RF-CAT): la imagen de la web también pasa por el límite
+      // de 1024px y la compresión, igual que galería/cámara. Si los bytes no
+      // son una imagen válida, [CustomImageCompressor.compress] lanza y
+      // cae al catch de abajo.
+      final compressed = CustomImageCompressor.compress(response.bodyBytes);
       setState(() {
-        _imageDataUrl = DataUrl.encode(response.bodyBytes, mime);
+        _imageDataUrl = DataUrl.encode(compressed.bytes, compressed.mime);
         _loadingImage = false;
         _errorText = null;
       });
@@ -198,17 +208,6 @@ final class _AddPictoScreenState extends State<AddPictoScreen> {
         _errorText = AppLocalizations.of(context)!.urlDownloadError;
       });
     }
-  }
-
-  String _mimeOf(String fileName) {
-    final lowered = fileName.toLowerCase();
-    if (lowered.endsWith('.png')) {
-      return 'image/png';
-    }
-    if (lowered.endsWith('.webp')) {
-      return 'image/webp';
-    }
-    return 'image/jpeg';
   }
 
   Future<void> _save() async {
