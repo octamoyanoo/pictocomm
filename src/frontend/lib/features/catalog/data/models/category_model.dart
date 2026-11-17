@@ -9,6 +9,7 @@ final class CategoryModel {
     required this.color,
     required this.icon,
     this.custom = false,
+    this.deletedAt,
   });
 
   final String id;
@@ -19,6 +20,10 @@ final class CategoryModel {
   /// RF3.9: las categorías persistidas (creadas por el adulto) son custom.
   final bool custom;
 
+  /// REQ-BCK-02 (RF-5.15): tumba del borrado lógico remoto, para purgar el
+  /// cache de dispositivos que ya la tenían.
+  final DateTime? deletedAt;
+
   factory CategoryModel.fromJson(Map<String, dynamic> json) {
     return CategoryModel(
       id: json['id'] as String,
@@ -26,11 +31,26 @@ final class CategoryModel {
       color: _parseColor(json['color'] as String),
       icon: json['icon'] as String,
       custom: json['custom'] as bool? ?? false,
+      deletedAt: _parseDate(json['deletedAt']),
     );
   }
 
+  static DateTime? _parseDate(Object? value) {
+    if (value is String && value.isNotEmpty) {
+      return DateTime.parse(value);
+    }
+    return null;
+  }
+
   Map<String, dynamic> toJson() {
-    return <String, dynamic>{'id': id, 'name': name, 'color': formatColor(color), 'icon': icon, 'custom': custom};
+    return <String, dynamic>{
+      'id': id,
+      'name': name,
+      'color': formatColor(color),
+      'icon': icon,
+      'custom': custom,
+      if (deletedAt != null) 'deletedAt': deletedAt!.toUtc().toIso8601String(),
+    };
   }
 
   factory CategoryModel.fromEntity(Category entity) {

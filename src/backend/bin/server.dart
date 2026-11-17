@@ -8,13 +8,16 @@ import 'package:shelf/shelf_io.dart' as shelf_io;
 ///
 /// - Puerto: variable de entorno `PORT`, default 8080 (RNF-5.2).
 /// - Seed: `data/seed.json` relativo a la raíz del paquete (RF-5.3).
+/// - Uploads: `data/uploads.json` + `data/images/uploads/` (REQ-BCK-02).
 /// - Imágenes: `data/images/` servidas como estáticos (RF-5.4).
 Future<void> main() async {
   final packageRoot = Directory(Platform.script.toFilePath()).parent.parent;
-  final seedPath = '${packageRoot.path}${Platform.pathSeparator}data${Platform.pathSeparator}seed.json';
-  final imagesDirectory = '${packageRoot.path}${Platform.pathSeparator}data${Platform.pathSeparator}images';
+  final dataRoot = '${packageRoot.path}${Platform.pathSeparator}data';
+  final seedPath = '$dataRoot${Platform.pathSeparator}seed.json';
+  final uploadsPath = '$dataRoot${Platform.pathSeparator}uploads.json';
+  final imagesDirectory = '$dataRoot${Platform.pathSeparator}images';
 
-  final store = CatalogStore.loadFrom(seedPath);
+  final store = CatalogStore.loadFrom(seedPath, uploadsPath: uploadsPath);
   final port = int.tryParse(Platform.environment['PORT'] ?? '') ?? 8080;
 
   final handler = const Pipeline()
@@ -36,6 +39,6 @@ Future<void> main() async {
 
 const Map<String, String> _corsHeaders = {
   'access-control-allow-origin': '*',
-  'access-control-allow-methods': 'GET, OPTIONS',
+  'access-control-allow-methods': 'GET, POST, PUT, DELETE, OPTIONS',
   'access-control-allow-headers': 'content-type',
 };

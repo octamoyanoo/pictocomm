@@ -145,5 +145,14 @@
   "emptyCatalogTitle": "No pictograms yet",
   "emptyCatalogSubtitle": "Images you add will appear here",
 
-  "languageSection": "Language"
+  "languageSection": "Language",
+
+  "syncSection": "Synchronization",
+  "syncStatusIdle": "Catalog ready (synchronization pending)",
+  "syncStatusSyncing": "Syncing…",
+  "syncStatusSynced": "Everything synced",
+  "syncStatusPending": "{count, plural, =1{Synced, 1 change waiting to be uploaded} other{Synced, {count} changes waiting to be uploaded}}",
+  "@syncStatusPending": { "placeholders": { "count": { "type": "int" } } },
+  "syncStatusOffline": "No connection with the server (using local data)",
+  "syncNowButton": "Sync now"
 }

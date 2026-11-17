@@ -227,6 +227,36 @@ final class ExplodingRemoteDataSource implements RemoteCatalogDataSource {
   Future<PictoModel> getPicto(String id) async {
     throw const UnimplementedFeatureException('ExplodingRemoteDataSource: la app no debe tocar el remoto en lectura');
   }
+
+  @override
+  Future<PictoModel> postPicto(PictoModel picto, {required String imageBase64, required String imageMime}) async {
+    throw const UnimplementedFeatureException('ExplodingRemoteDataSource: subida inesperada');
+  }
+
+  @override
+  Future<PictoModel> putPicto(PictoModel picto, {String? imageBase64, String? imageMime}) async {
+    throw const UnimplementedFeatureException('ExplodingRemoteDataSource: subida inesperada');
+  }
+
+  @override
+  Future<PictoModel> deletePicto(String id) async {
+    throw const UnimplementedFeatureException('ExplodingRemoteDataSource: subida inesperada');
+  }
+
+  @override
+  Future<CategoryModel> postCategory(CategoryModel category) async {
+    throw const UnimplementedFeatureException('ExplodingRemoteDataSource: subida inesperada');
+  }
+
+  @override
+  Future<CategoryModel> putCategory(CategoryModel category) async {
+    throw const UnimplementedFeatureException('ExplodingRemoteDataSource: subida inesperada');
+  }
+
+  @override
+  Future<CategoryModel> deleteCategory(String id) async {
+    throw const UnimplementedFeatureException('ExplodingRemoteDataSource: subida inesperada');
+  }
 }
 
 /// Backend "en memoria" para tests del sync (REQ-BCK-01): respeta el mismo
@@ -243,10 +273,13 @@ final class FakeRemoteCatalogDataSource implements RemoteCatalogDataSource {
 
   final List<CategoryModel> _categories;
   final List<PictoModel> _pictos;
-  final Object? Function()? _error;
+  Object? Function()? _error;
 
   /// Valores de `since` recibidos por `getPictos`, en orden.
   final List<DateTime?> pictosSinceCalls = [];
+
+  /// Cambia el error simulado en caliente (backend caído → disponible).
+  void setError(Object? Function()? error) => _error = error;
 
   /// Pictos remotos vigentes (mutables para simular cambios en el backend).
   List<PictoModel> get pictos => _pictos;
@@ -265,7 +298,13 @@ final class FakeRemoteCatalogDataSource implements RemoteCatalogDataSource {
     pictosSinceCalls.add(since);
     return _pictos
         .where((picto) => categoryId == null || picto.categoryIds.contains(categoryId))
-        .where((picto) => since == null || picto.updatedAt.isAfter(since))
+        // RF-5.14: con `since` el server también devuelve tumbas recientes
+        // (deletedAt posterior), como el backend real.
+        .where(
+          (picto) => since == null ||
+              picto.deletedAt?.isAfter(since) == true ||
+              (picto.deletedAt == null && picto.updatedAt.isAfter(since)),
+        )
         .take(limit)
         .toList();
   }
@@ -279,6 +318,108 @@ final class FakeRemoteCatalogDataSource implements RemoteCatalogDataSource {
       }
     }
     throw const DataSourceException('picto no encontrado');
+  }
+
+  // ---- Subida (REQ-BCK-02): registra las ops para verificar el flush ----
+
+  /// Operaciones de subida recibidas, en orden: "$op:$id".
+  final List<String> writeCalls = [];
+
+  PictoModel _upsertRemote(PictoModel incoming) {
+    // RF-5.12: como el server real, lo subido por dispositivos se SIRVE como
+    // remote (id `custom-*` intacto) para que renderice con Image.network
+    // en los otros dispositivos (RNF-5.15).
+    final served = incoming.source == PictoSource.remote
+        ? incoming
+        : PictoModel(
+            id: incoming.id,
+            label: incoming.label,
+            categoryIds: incoming.categoryIds,
+            imageUrl: incoming.imageUrl,
+            source: PictoSource.remote,
+            createdAt: incoming.createdAt,
+            updatedAt: incoming.updatedAt,
+            childProfileId: incoming.childProfileId,
+            deletedAt: incoming.deletedAt,
+          );
+    final index = _pictos.indexWhere((picto) => picto.id == served.id);
+    if (index >= 0) {
+      final existing = _pictos[index];
+      // RNF-5.10: last-write-wins — la respuesta trae la versión ganadora.
+      final winner = served.updatedAt.isAfter(existing.updatedAt) ? served : existing;
+      _pictos[index] = winner;
+      return winner;
+    }
+    _pictos.add(served);
+    return served;
+  }
+
+  @override
+  Future<PictoModel> postPicto(PictoModel picto, {required String imageBase64, required String imageMime}) async {
+    _throwIfError();
+    writeCalls.add('post:${picto.id}');
+    final existing = _pictos.where((picto_) => picto_.id == picto.id).firstOrNull;
+    if (existing != null) {
+      // 409 con la versión guardada (el repositorio adopta si es más nueva).
+      return existing;
+    }
+    return _upsertRemote(picto);
+  }
+
+  @override
+  Future<PictoModel> putPicto(PictoModel picto, {String? imageBase64, String? imageMime}) async {
+    _throwIfError();
+    writeCalls.add('put:${picto.id}');
+    return _upsertRemote(picto);
+  }
+
+  @override
+  Future<PictoModel> deletePicto(String id) async {
+    _throwIfError();
+    writeCalls.add('delete:$id');
+    final tombstone = PictoModel(
+      id: id,
+      label: '',
+      categoryIds: const [],
+      imageUrl: '',
+      source: PictoSource.remote,
+      createdAt: DateTime.fromMillisecondsSinceEpoch(0, isUtc: true),
+      updatedAt: DateTime.now().toUtc(),
+      deletedAt: DateTime.now().toUtc(),
+    );
+    final index = _pictos.indexWhere((picto) => picto.id == id);
+    if (index >= 0) {
+      _pictos[index] = tombstone;
+    }
+    return tombstone;
+  }
+
+  final List<CategoryModel> _writtenCategories = [];
+
+  /// Categorías subidas (post/put), para asertar en los tests.
+  List<CategoryModel> get writtenCategories => List.unmodifiable(_writtenCategories);
+
+  @override
+  Future<CategoryModel> postCategory(CategoryModel category) async {
+    _throwIfError();
+    writeCalls.add('post:${category.id}');
+    _writtenCategories.add(category);
+    return category;
+  }
+
+  @override
+  Future<CategoryModel> putCategory(CategoryModel category) async {
+    _throwIfError();
+    writeCalls.add('put:${category.id}');
+    _writtenCategories.add(category);
+    return category;
+  }
+
+  @override
+  Future<CategoryModel> deleteCategory(String id) async {
+    _throwIfError();
+    writeCalls.add('delete:$id');
+    return CategoryModel(id: id, name: '', color: 0xFF7C5CBF, icon: 'category', deletedAt: DateTime.now().toUtc());
   }
 
   void _throwIfError() {

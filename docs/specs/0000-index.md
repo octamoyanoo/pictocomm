@@ -24,6 +24,7 @@ Listado general de las funcionalidades implementadas en **PictoComm**, con una d
 - [**Pictogramas personalizados**](./aprobadas/catalogo.md) — El adulto crea pictos con imagen (galería, cámara o URL) que pertenecen al chico activo y funcionan sin conexión.
 - [**Categorías personalizadas**](./aprobadas/catalogo.md) — Categorías creadas por el adulto, con nombre, color de una paleta fija y borrado con doble confirmación (cascada selectiva de pictos).
 - [**Borrado con doble confirmación**](./aprobadas/catalogo.md) — Pictos y categorías custom se borran con dos diálogos; el catálogo incluido no se puede borrar.
+- [**Pictos multicategoría y edición**](./por-aprobar/catalogo-multicategoria.md) — Un picto vive en 1 o más catálogos (elegidos en el formulario, con preselección al crear desde una categoría); pictos y categorías custom se editan (nombre, imagen, color); la cascada de borrado quita membresías en vez de dejar huérfanos. Pendiente de aprobar.
 
 ## Comunicación
 
@@ -37,3 +38,4 @@ Listado general de las funcionalidades implementadas en **PictoComm**, con una d
 ## Backend y sync
 
 - [**Backend y sync del catálogo (descarga)**](./aprobadas/backend-sync.md) — Backend Dart (shelf) en `src/backend/` que sirve un catálogo ampliado desde un seed JSON; la app lo sincroniza al arrancar (incremental por `updatedAt`), lo cachea local y lo mergea con lo suyo.
+- [**Backend bidireccional (subida del catálogo custom)**](./por-aprobar/backend-bidireccional.md) — Lo creado en la app sube al backend (alta, edición y borrado lógico de pictos y categorías custom, con conflictos last-write-wins); outbox con reintentos y estado de sync visible en modo adulto. Pendiente de aprobar.

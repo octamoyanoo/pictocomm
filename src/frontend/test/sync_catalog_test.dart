@@ -39,6 +39,26 @@ final class CappedRemoteDataSource implements RemoteCatalogDataSource {
 
   @override
   Future<PictoModel> getPicto(String id) => _inner.getPicto(id);
+
+  @override
+  Future<PictoModel> postPicto(PictoModel picto, {required String imageBase64, required String imageMime}) =>
+      _inner.postPicto(picto, imageBase64: imageBase64, imageMime: imageMime);
+
+  @override
+  Future<PictoModel> putPicto(PictoModel picto, {String? imageBase64, String? imageMime}) =>
+      _inner.putPicto(picto, imageBase64: imageBase64, imageMime: imageMime);
+
+  @override
+  Future<PictoModel> deletePicto(String id) => _inner.deletePicto(id);
+
+  @override
+  Future<CategoryModel> postCategory(CategoryModel category) => _inner.postCategory(category);
+
+  @override
+  Future<CategoryModel> putCategory(CategoryModel category) => _inner.putCategory(category);
+
+  @override
+  Future<CategoryModel> deleteCategory(String id) => _inner.deleteCategory(id);
 }
 
 /// REQ-BCK-01: backend + sync de solo descarga del catálogo.

@@ -62,6 +62,30 @@ final class RemoteCatalogCacheDataSource {
     }
   }
 
+  /// REQ-BCK-02 (RF-5.14/RF-5.15): purga del cache los items que llegaron
+  /// como tumbas (borrado lógico propagado por el sync).
+  Future<void> purgePictos(List<String> ids) async {
+    if (ids.isEmpty) {
+      return;
+    }
+    final prefs = await SharedPreferences.getInstance();
+    final pictos = _decode(prefs.getString(_pictosKey), PictoModel.fromJson);
+    final doomed = ids.toSet();
+    final remaining = pictos.where((picto) => !doomed.contains(picto.id)).toList();
+    await prefs.setString(_pictosKey, jsonEncode([for (final picto in remaining) picto.toJson()]));
+  }
+
+  Future<void> purgeCategories(List<String> ids) async {
+    if (ids.isEmpty) {
+      return;
+    }
+    final prefs = await SharedPreferences.getInstance();
+    final categories = _decode(prefs.getString(_categoriesKey), CategoryModel.fromJson);
+    final doomed = ids.toSet();
+    final remaining = categories.where((category) => !doomed.contains(category.id)).toList();
+    await prefs.setString(_categoriesKey, jsonEncode([for (final category in remaining) category.toJson()]));
+  }
+
   static List<T> _upsert<T extends Object>(List<T> stored, List<T> incoming) {
     final byId = <String, T>{
       // `id` es la clave de dedup en ambos models (RF-5.8).

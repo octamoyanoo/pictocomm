@@ -4,7 +4,7 @@
 
 App Flutter (local-first) para comunicación por imágenes en niños autistas no verbales de 2-5 años.
 
-Frontend definido y verificado. **Backend v1 (REQ-BCK-01, solo descarga) implementado y verificado**: `src/backend/` es un paquete Dart (shelf) que sirve el catálogo remoto desde un seed JSON; la app lo sincroniza al arrancar y lo mergea local (spec aprobado en `docs/specs/aprobadas/backend-sync.md`).
+Frontend definido y verificado. **Backend v1 (REQ-BCK-01, solo descarga) aprobado**: `src/backend/` es un paquete Dart (shelf) que sirve el catálogo remoto desde un seed JSON; la app lo sincroniza al arrancar y lo mergea local (spec en `docs/specs/aprobadas/backend-sync.md`). **v2 implementado (REQ-CAT-02 + REQ-BCK-02, specs en `por-aprobar/`)**: pictos multicategoría (`categoryIds`) + edición de custom, y subida bidireccional (POST/PUT/DELETE, `data/uploads.json`, outbox con reintentos, borrado lógico con tumbas, indicador de sync en Perfil).
 
 ## Objetivo del Proyecto
 

@@ -420,4 +420,34 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get languageSection => 'Idioma';
+
+  @override
+  String get syncSection => 'Sincronização';
+
+  @override
+  String get syncStatusIdle => 'Catálogo pronto (sincronização pendente)';
+
+  @override
+  String get syncStatusSyncing => 'Sincronizando…';
+
+  @override
+  String get syncStatusSynced => 'Tudo sincronizado';
+
+  @override
+  String syncStatusPending(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Sincronizado, $count alterações aguardando envio',
+      one: 'Sincronizado, 1 alteração aguardando envio',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get syncStatusOffline =>
+      'Sem conexão com o servidor (usando dados locais)';
+
+  @override
+  String get syncNowButton => 'Sincronizar agora';
 }

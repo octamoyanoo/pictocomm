@@ -10,6 +10,7 @@ final class PictoModel {
     required this.createdAt,
     required this.updatedAt,
     this.childProfileId,
+    this.deletedAt,
   });
 
   final String id;
@@ -20,6 +21,11 @@ final class PictoModel {
   final DateTime createdAt;
   final DateTime updatedAt;
   final String? childProfileId;
+
+  /// REQ-BCK-02 (RF-5.14): tumba del borrado lógico remoto. Llega por el
+  /// sync incremental; el repositorio la usa para purgar el cache y nunca
+  /// renderiza un picto borrado.
+  final DateTime? deletedAt;
 
   /// REQ-CAT-02 (RNF-3.8): compatibilidad con el formato v1 — si el JSON
   /// trae `categoryId` (un solo string), se migra a una lista de un
@@ -34,7 +40,15 @@ final class PictoModel {
       createdAt: DateTime.parse(json['createdAt'] as String),
       updatedAt: DateTime.parse(json['updatedAt'] as String),
       childProfileId: json['childProfileId'] as String?,
+      deletedAt: _parseDate(json['deletedAt']),
     );
+  }
+
+  static DateTime? _parseDate(Object? value) {
+    if (value is String && value.isNotEmpty) {
+      return DateTime.parse(value);
+    }
+    return null;
   }
 
   static List<String> _parseCategoryIds(Map<String, dynamic> json) {
@@ -59,6 +73,7 @@ final class PictoModel {
       'createdAt': createdAt.toUtc().toIso8601String(),
       'updatedAt': updatedAt.toUtc().toIso8601String(),
       'childProfileId': childProfileId,
+      if (deletedAt != null) 'deletedAt': deletedAt!.toUtc().toIso8601String(),
     };
   }
 

@@ -8,6 +8,7 @@ import '../../../../core/i18n/locale_controller.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/utils/data_url.dart';
 import '../../../../core/widgets/app_bottom_nav.dart';
+import '../../../sync/presentation/sync_status_card.dart';
 import '../../domain/entities/child_profile.dart';
 import '../providers/children_provider.dart';
 import '../providers/session_provider.dart';
@@ -94,6 +95,10 @@ final class _ProfileContent extends StatelessWidget {
         // RF4.2: selector de idioma de la UI, espacio del adulto. El cambio
         // aplica en el momento (RF4.3) vía LocaleController sobre MaterialApp.
         const _LanguageSection(),
+        const SizedBox(height: 20),
+        // REQ-BCK-02 (RF-5.19): estado de sync del catálogo + "Sincronizar
+        // ahora". Solo modo adulto (RF-5.16: el chico no ve nada de sync).
+        const SyncStatusCard(),
         const SizedBox(height: 20),
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,

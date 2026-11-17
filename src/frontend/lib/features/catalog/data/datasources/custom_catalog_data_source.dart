@@ -49,6 +49,9 @@ final class CustomCatalogDataSource {
       if (reduced.isEmpty && belongsToActiveChild) {
         continue; // Cascada: se elimina (RF-3.20).
       }
+      // REQ-BCK-02 (RF-5.17): el sobreviviente avanza updatedAt — el cambio
+      // de membresía viaja al backend por el outbox (PUT).
+      final changedAt = DateTime.now().toUtc();
       remainingPictos.add(Picto(
         id: picto.id,
         label: picto.label,
@@ -57,7 +60,7 @@ final class CustomCatalogDataSource {
         imageUrl: picto.imageUrl,
         childProfileId: picto.childProfileId,
         createdAt: picto.createdAt,
-        updatedAt: picto.updatedAt,
+        updatedAt: changedAt,
       ));
     }
     await prefs.setString(_categoriesKey, jsonEncode([

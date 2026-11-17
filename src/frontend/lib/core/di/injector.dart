@@ -1,5 +1,3 @@
-import 'dart:async';
-
 import '../../features/catalog/data/datasources/custom_catalog_data_source.dart';
 import '../../features/catalog/data/datasources/http_remote_catalog_data_source.dart';
 import '../../features/catalog/data/datasources/local_catalog_data_source.dart';
@@ -18,12 +16,17 @@ final class AppDependencies {
     required this.pictoRepository,
     required this.childProfileRepository,
     required this.voiceProvider,
+    this.catalogRepository,
   });
 
   final CategoryRepository categoryRepository;
   final PictoRepository pictoRepository;
   final ChildProfileRepository childProfileRepository;
   final VoiceProvider voiceProvider;
+
+  /// REQ-BCK-02 (RF-5.19): repositorio concreto para el servicio de sync
+  /// (outbox + descarga). `null` solo en fakes de test.
+  final LocalPictoRepository? catalogRepository;
 
   static AppDependencies bootstrap() {
     final localPictoRepository = LocalPictoRepository(
@@ -33,10 +36,6 @@ final class AppDependencies {
       // siempre de local (RF-5.11) y el sync corre aparte (RF-5.5).
       remoteDataSource: HttpRemoteCatalogDataSource(),
     );
-    // RF-5.5: sync al arrancar, fire-and-forget — no bloquea el primer frame
-    // ni toca pantallas/providers. Si el backend no está, falla en silencio
-    // (RF-5.10, lo maneja el repositorio).
-    unawaited(localPictoRepository.syncFromRemote());
     return AppDependencies(
       categoryRepository: localPictoRepository,
       pictoRepository: localPictoRepository,
@@ -49,6 +48,7 @@ final class AppDependencies {
       // Voz v1 (RF1.10): TTS del sistema. El día que se pase al modo híbrido
       // (RF1.11) se reemplaza esta línea, sin tocar pantallas ni providers.
       voiceProvider: TtsVoiceProvider(),
+      catalogRepository: localPictoRepository,
     );
   }
 }

@@ -25,6 +25,7 @@ import 'features/profiles/presentation/providers/children_provider.dart';
 import 'features/profiles/presentation/providers/session_provider.dart';
 import 'features/profiles/presentation/screens/child_selector_screen.dart';
 import 'features/profiles/presentation/screens/profile_screen.dart';
+import 'features/sync/sync_service.dart';
 import 'features/voice/domain/voice_provider.dart';
 
 final class AppRouter {
@@ -172,6 +173,13 @@ final class PictoCommApp extends StatelessWidget {
   Widget build(BuildContext context) {
     final session = SessionProvider();
     final appRouter = AppRouter(dependencies, session);
+    // REQ-BCK-02 (RF-5.19): servicio de sync observable, provisto global.
+    // En tests con fakes (sin backend) queda en no-op sin UI rota.
+    final syncService = SyncService(catalogRepository: dependencies.catalogRepository);
+    // RF-5.20: el arranque corre el sync (descarga + flush) en background;
+    // el repositorio avisa cuando encola un cambio para refrescar el estado.
+    dependencies.catalogRepository?.onUploadEnqueued = syncService.markDirty;
+    unawaited(syncService.bootstrap());
     final controller = localeController ?? LocaleController.ephemeral();
     // Al cambiar de chico en el selector, las vistas del catálogo refrescan
     // para mostrar los pictos de ese chico (RF3.6).
@@ -183,30 +191,36 @@ final class PictoCommApp extends StatelessWidget {
     // el selector de idioma de la pantalla Perfil (RF4.2).
     return ChangeNotifierProvider<LocaleController>.value(
       value: controller,
-      child: ChangeNotifierProvider<SessionProvider>.value(
-        value: session,
-        // El Builder observa (watch) el controller: cuando el idioma cambia
-        // (RF4.3) se reconstruye el MaterialApp completo con el locale nuevo.
-        // SIN esto el MaterialApp quedaba construido con el locale viejo,
-        // porque el provider solo reconstruye a quien hace watch.
-        child: Builder(
-          builder: (context) {
-            final locale = context.watch<LocaleController>().locale;
-            return MaterialApp(
-              title: 'PictoComm',
-              debugShowCheckedModeBanner: false,
-              theme: AppTheme.light(),
-              locale: locale,
-              supportedLocales: const [
-                Locale('es'),
-                Locale('en'),
-                Locale('pt'),
-              ],
-              localizationsDelegates: AppLocalizations.localizationsDelegates,
-              initialRoute: AppRoutes.login,
-              onGenerateRoute: appRouter.onGenerateRoute,
-            );
-          },
+      // REQ-BCK-02 (RF-5.19): el estado de sync vive al nivel de la app,
+      // igual que la sesión y el idioma; la pantalla Perfil (modo adulto) lo
+      // muestra con el botón "Sincronizar ahora".
+      child: ChangeNotifierProvider<SyncService>.value(
+        value: syncService,
+        child: ChangeNotifierProvider<SessionProvider>.value(
+          value: session,
+          // El Builder observa (watch) el controller: cuando el idioma cambia
+          // (RF4.3) se reconstruye el MaterialApp completo con el locale nuevo.
+          // SIN esto el MaterialApp quedaba construido con el locale viejo,
+          // porque el provider solo reconstruye a quien hace watch.
+          child: Builder(
+            builder: (context) {
+              final locale = context.watch<LocaleController>().locale;
+              return MaterialApp(
+                title: 'PictoComm',
+                debugShowCheckedModeBanner: false,
+                theme: AppTheme.light(),
+                locale: locale,
+                supportedLocales: const [
+                  Locale('es'),
+                  Locale('en'),
+                  Locale('pt'),
+                ],
+                localizationsDelegates: AppLocalizations.localizationsDelegates,
+                initialRoute: AppRoutes.login,
+                onGenerateRoute: appRouter.onGenerateRoute,
+              );
+            },
+          ),
         ),
       ),
     );

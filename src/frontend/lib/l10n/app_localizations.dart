@@ -819,6 +819,48 @@ abstract class AppLocalizations {
   /// In es, this message translates to:
   /// **'Idioma'**
   String get languageSection;
+
+  /// No description provided for @syncSection.
+  ///
+  /// In es, this message translates to:
+  /// **'Sincronización'**
+  String get syncSection;
+
+  /// No description provided for @syncStatusIdle.
+  ///
+  /// In es, this message translates to:
+  /// **'Catálogo listo (sincronización pendiente)'**
+  String get syncStatusIdle;
+
+  /// No description provided for @syncStatusSyncing.
+  ///
+  /// In es, this message translates to:
+  /// **'Sincronizando…'**
+  String get syncStatusSyncing;
+
+  /// No description provided for @syncStatusSynced.
+  ///
+  /// In es, this message translates to:
+  /// **'Todo sincronizado'**
+  String get syncStatusSynced;
+
+  /// No description provided for @syncStatusPending.
+  ///
+  /// In es, this message translates to:
+  /// **'{count, plural, =1{Sincronizado, 1 cambio pendiente de subirse} other{Sincronizado, {count} cambios pendientes de subirse}}'**
+  String syncStatusPending(int count);
+
+  /// No description provided for @syncStatusOffline.
+  ///
+  /// In es, this message translates to:
+  /// **'Sin conexión con el servidor (usando lo local)'**
+  String get syncStatusOffline;
+
+  /// No description provided for @syncNowButton.
+  ///
+  /// In es, this message translates to:
+  /// **'Sincronizar ahora'**
+  String get syncNowButton;
 }
 
 class _AppLocalizationsDelegate

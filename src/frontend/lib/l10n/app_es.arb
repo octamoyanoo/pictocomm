@@ -145,5 +145,14 @@
   "emptyCatalogTitle": "Aún no hay pictogramas",
   "emptyCatalogSubtitle": "Cuando agregues imágenes aparecerán aquí",
 
-  "languageSection": "Idioma"
+  "languageSection": "Idioma",
+
+  "syncSection": "Sincronización",
+  "syncStatusIdle": "Catálogo listo (sincronización pendiente)",
+  "syncStatusSyncing": "Sincronizando…",
+  "syncStatusSynced": "Todo sincronizado",
+  "syncStatusPending": "{count, plural, =1{Sincronizado, 1 cambio pendiente de subirse} other{Sincronizado, {count} cambios pendientes de subirse}}",
+  "@syncStatusPending": { "placeholders": { "count": { "type": "int" } } },
+  "syncStatusOffline": "Sin conexión con el servidor (usando lo local)",
+  "syncNowButton": "Sincronizar ahora"
 }

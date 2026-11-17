@@ -1,15 +1,20 @@
+import 'dart:async';
+
 import '../../../../core/error/app_exception.dart';
+import '../../../../core/utils/data_url.dart';
 import 'dart:ui' show Color;
 
 import '../../domain/entities/category.dart';
 import '../../domain/entities/picto.dart';
 import '../../domain/repositories/category_repository.dart';
 import '../../domain/repositories/picto_repository.dart';
+import '../models/category_model.dart';
 import '../models/picto_model.dart';
 import '../datasources/custom_catalog_data_source.dart';
 import '../datasources/local_catalog_data_source.dart';
 import '../datasources/remote_catalog_cache_data_source.dart';
 import '../datasources/remote_catalog_data_source.dart';
+import '../datasources/remote_outbox_data_source.dart';
 
 final class LocalPictoRepository implements CategoryRepository, PictoRepository {
   LocalPictoRepository({
@@ -17,7 +22,9 @@ final class LocalPictoRepository implements CategoryRepository, PictoRepository 
     required this.customDataSource,
     required this.remoteDataSource,
     this.cacheDataSource = const RemoteCatalogCacheDataSource(),
+    this.outboxDataSource = const RemoteOutboxDataSource(),
     this.syncPageLimit = 100,
+    this.onUploadEnqueued,
   });
 
   final LocalCatalogDataSource localDataSource;
@@ -30,9 +37,18 @@ final class LocalPictoRepository implements CategoryRepository, PictoRepository 
   /// acá, nunca de la red (local-first, RF-5.11).
   final RemoteCatalogCacheDataSource cacheDataSource;
 
+  /// Cola de salida de la subida bidireccional (REQ-BCK-02, RF-5.17). Los
+  /// cambios custom entran acá y se suben al backend con reintentos.
+  final RemoteOutboxDataSource outboxDataSource;
+
   /// Tamaño de página del sync incremental (RF-5.7): el loop corta cuando
   /// el backend devuelve menos que esto (fin de datos).
   final int syncPageLimit;
+
+  /// REQ-BCK-02 (RF-5.19): aviso de que el estado de subida cambió (la UI de
+  /// sync refresca el contador). Asignado por el injector después de crear
+  /// el repositorio.
+  void Function()? onUploadEnqueued;
 
   /// Ids únicos aunque dos creaciones caigan en el mismo microsegundo.
   static int _idCounter = 0;
@@ -117,6 +133,11 @@ final class LocalPictoRepository implements CategoryRepository, PictoRepository 
       throw const DataSourceException('El pictograma pertenece a otro chico (RF3.8)');
     }
     await customDataSource.deletePicto(id);
+    // REQ-BCK-02 (RF-5.16): el borrado viaja al backend (lógico). Los
+    // legacy sin dueño nunca subieron: nada que encolar.
+    if (target.childProfileId != null) {
+      await _enqueue(kind: RemoteOutboxDataSource.kindPicto, op: RemoteOutboxDataSource.opDelete, id: id);
+    }
   }
 
   @override
@@ -134,7 +155,30 @@ final class LocalPictoRepository implements CategoryRepository, PictoRepository 
     if (!stored.any((category) => category.id == id)) {
       throw const DataSourceException('La categoría no existe');
     }
+    // REQ-BCK-02 (RF-5.17): la cascada también viaja — pictos que pierden
+    // la membresía suben su versión nueva (PUT) y los eliminados van como
+    // DELETE. Se registran antes del borrado (la membresía original) y se
+    // encolan después (el datasource avanzó updatedAt de los sobrevivientes).
+    final affected = (await customDataSource.loadPictos()).where((picto) => picto.categoryIds.contains(id)).toList();
     await customDataSource.deleteCategory(id, childProfileId: childProfileId);
+    final afterDelete = await customDataSource.loadPictos();
+    final survivors = {for (final picto in afterDelete) picto.id};
+    for (final picto in affected) {
+      if (survivors.contains(picto.id)) {
+        if (picto.childProfileId != null) {
+          final updated = afterDelete.where((existing) => existing.id == picto.id).firstOrNull;
+          if (updated != null) {
+            await _enqueuePicto(updated, RemoteOutboxDataSource.opPut);
+          }
+        }
+        continue;
+      }
+      if (picto.childProfileId != null) {
+        // Cascado del chico activo (o sin dueño que no subió nunca).
+        await _enqueue(kind: RemoteOutboxDataSource.kindPicto, op: RemoteOutboxDataSource.opDelete, id: picto.id);
+      }
+    }
+    await _enqueue(kind: RemoteOutboxDataSource.kindCategory, op: RemoteOutboxDataSource.opDelete, id: id);
   }
 
   @override
@@ -161,7 +205,12 @@ final class LocalPictoRepository implements CategoryRepository, PictoRepository 
         throw DuplicateCatalogException('Ya existe una categoría "$name"');
       }
     }
-    return customDataSource.saveCategory(Category(id: id, name: name, color: category.color, custom: true));
+    return customDataSource.saveCategory(Category(id: id, name: name, color: category.color, custom: true))
+        .then((created) async {
+      // REQ-BCK-02 (RF-5.16): la categoría custom sube al backend.
+      await _enqueueCategory(created, RemoteOutboxDataSource.opPost);
+      return created;
+    });
   }
 
   /// REQ-CAT-02 (RF-3.17): renombra/recolorea una categoría custom sin
@@ -192,13 +241,16 @@ final class LocalPictoRepository implements CategoryRepository, PictoRepository 
         throw DuplicateCatalogException('Ya existe una categoría "$name"');
       }
     }
-    return customDataSource.saveCategory(Category(
+    final saved = await customDataSource.saveCategory(Category(
       id: category.id,
       name: name,
       color: category.color,
       icon: target.icon,
       custom: true,
     ));
+    // REQ-BCK-02 (RF-5.16): la edición de la categoría sube al backend.
+    await _enqueueCategory(saved, RemoteOutboxDataSource.opPut);
+    return saved;
   }
 
   @override
@@ -216,7 +268,7 @@ final class LocalPictoRepository implements CategoryRepository, PictoRepository 
     }
     final now = DateTime.now().toUtc();
     final id = 'custom-${now.microsecondsSinceEpoch}-${_idCounter++}';
-    return customDataSource.savePicto(
+    final persisted = await customDataSource.savePicto(
       Picto(
         id: id,
         label: label,
@@ -228,6 +280,12 @@ final class LocalPictoRepository implements CategoryRepository, PictoRepository 
         updatedAt: now,
       ),
     );
+    // REQ-BCK-02 (RF-5.16): sube en background. Los legacy sin dueño (RF3.7)
+    // no suben hasta que se les asigne chico (RF-3.19/RF-5.16).
+    if (persisted.childProfileId != null) {
+      await _enqueuePicto(persisted, RemoteOutboxDataSource.opPost);
+    }
+    return persisted;
   }
 
   /// REQ-CAT-02 (RF-3.16/RF-3.18/RF-3.19): edita un picto custom. Mismas
@@ -256,7 +314,7 @@ final class LocalPictoRepository implements CategoryRepository, PictoRepository 
       throw const DataSourceException('El pictograma pertenece a otro chico (RF-3.18)');
     }
     final now = DateTime.now().toUtc();
-    return customDataSource.savePicto(
+    final persisted = await customDataSource.savePicto(
       Picto(
         id: target.id,
         label: label,
@@ -268,21 +326,40 @@ final class LocalPictoRepository implements CategoryRepository, PictoRepository 
         updatedAt: now,
       ),
     );
+    // REQ-BCK-02 (RF-5.16): la edición sube al backend. Un legacy sigue sin
+    // dueño si nadie lo asignó: no sube (RF-5.16).
+    if (persisted.childProfileId != null) {
+      await _enqueuePicto(persisted, RemoteOutboxDataSource.opPut, imageChanged: picto.imageUrl != target.imageUrl);
+    }
+    return persisted;
   }
 
-  /// REQ-BCK-01: sync de solo descarga (RF-5.5 a RF-5.7).
+  /// REQ-BCK-02 (RF-5.19): resultado del último sync de descarga. `true` si
+  /// falló (backend caído, sin conexión, timeout) — alimenta el indicador
+  /// "sin conexión". Se resetea en cada intento.
+  bool lastSyncFailed = false;
+
+  /// REQ-BCK-01: sync de solo descarga (RF-5.5 a RF-5.7) + purga de tumbas
+  /// (REQ-BCK-02, RF-5.14/RF-5.15).
   ///
   /// Descarga categorías y pictos nuevos del backend (`updatedAt` posterior
   /// al último sync), los cachea con upsert por id y avanza la fecha del
   /// sync. Se pagina con el `limit` máximo para no perder items cuando el
-  /// catálogo remoto supera una página.
+  /// catálogo remoto supera una página. Los items borrados lógicamente
+  /// llegan como tumbas y se **purgan** del cache local.
   ///
   /// Si el backend no está disponible (RF-5.10) falla en silencio: la app
   /// sigue con su catálogo local y sin errores visibles.
   Future<void> syncFromRemote() async {
     final pageLimit = syncPageLimit;
+    lastSyncFailed = false;
     try {
       final remoteCategories = await remoteDataSource.getCategories();
+      final aliveCategories = remoteCategories.where((category) => category.deletedAt == null).toList();
+      final deletedCategoryIds = [
+        for (final category in remoteCategories)
+          if (category.deletedAt != null) category.id,
+      ];
       var cursor = await cacheDataSource.lastSyncAt() ?? DateTime.fromMillisecondsSinceEpoch(0, isUtc: true);
       final fetched = <PictoModel>[];
       while (true) {
@@ -294,20 +371,199 @@ final class LocalPictoRepository implements CategoryRepository, PictoRepository 
         if (page.length < pageLimit) {
           break;
         }
-        final newest = page.map((picto) => picto.updatedAt).reduce(_newest);
+        final newest = page.map(_versionDate).reduce(_newest);
         if (!newest.isAfter(cursor)) {
           // Guarda anti-loop: la página no avanzó el cursor.
           break;
         }
         cursor = newest;
       }
-      final lastSync = fetched.isEmpty ? null : fetched.map((picto) => picto.updatedAt).reduce(_newest);
-      await cacheDataSource.save(categories: remoteCategories, pictos: fetched, syncedAt: lastSync);
+      final alivePictos = fetched.where((picto) => picto.deletedAt == null).toList();
+      final deletedPictoIds = [
+        for (final picto in fetched)
+          if (picto.deletedAt != null) picto.id,
+      ];
+      // El cursor también avanza con las tumbas: su fecha es la del borrado.
+      final lastSync = fetched.isEmpty ? null : fetched.map(_versionDate).reduce(_newest);
+      await cacheDataSource.save(categories: aliveCategories, pictos: alivePictos, syncedAt: lastSync);
+      await cacheDataSource.purgeCategories(deletedCategoryIds);
+      await cacheDataSource.purgePictos(deletedPictoIds);
     } on AppException {
-      // RF-5.10: backend caído / sin conexión / timeout → silencio.
+      // RF-5.10: backend caído / sin conexión / timeout → silencio (pero el
+      // indicador de sync lo refleja, RF-5.19).
+      lastSyncFailed = true;
     } on FormatException {
       // Respuesta malformada → también silenciosa (local-first).
+      lastSyncFailed = true;
     }
+  }
+
+  static DateTime _versionDate(PictoModel picto) => picto.deletedAt ?? picto.updatedAt;
+
+  /// REQ-BCK-02 (RF-5.20): sincronización completa — vacía la cola de
+  /// subida y después descarga lo nuevo del backend. Es lo que corre el
+  /// botón "Sincronizar ahora" (y el arranque de la app).
+  Future<void> syncNow() async {
+    await flushOutbox();
+    await syncFromRemote();
+  }
+
+  /// REQ-BCK-02 (RF-5.17): intenta vaciar el outbox contra el backend,
+  /// en orden. Cualquier op subida se quita de la cola; si el backend no
+  /// está (RF-5.10) corta en silencio y la cola espera el próximo intento.
+  Future<void> flushOutbox() async {
+    final ops = await outboxDataSource.load();
+    for (final op in ops) {
+      try {
+        await _flushOne(op);
+      } on AppException {
+        // RF-5.10: backend caído / sin conexión / timeout. La op (y las
+        // restantes) quedan en la cola para el próximo flush.
+        return;
+      }
+      await outboxDataSource.remove(kind: op.kind, op: op.op, id: op.id);
+      onUploadEnqueued?.call();
+    }
+  }
+
+  /// REQ-BCK-02 (RF-5.17): cantidad de cambios pendientes de subida.
+  Future<int> pendingUploadsCount() => outboxDataSource.count();
+
+  Future<void> _flushOne(OutboxOperation op) async {
+    switch (op.kind) {
+      case RemoteOutboxDataSource.kindPicto:
+        await _flushPicto(op);
+      case RemoteOutboxDataSource.kindCategory:
+        await _flushCategory(op);
+      default:
+        // Op desconocida: la descartamos para no trabar la cola.
+        return;
+    }
+  }
+
+  Future<void> _flushPicto(OutboxOperation op) async {
+    if (op.op == RemoteOutboxDataSource.opDelete) {
+      // Borrado lógico propagado; la tumba solo le interesa al server.
+      await remoteDataSource.deletePicto(op.id);
+      return;
+    }
+    final model = op.picto;
+    if (model == null) {
+      return;
+    }
+    switch (op.op) {
+      case RemoteOutboxDataSource.opPost:
+      case RemoteOutboxDataSource.opPut:
+        final (mime, base64) = _imagePayload(model.imageUrl);
+        if (base64 == null) {
+          // Imagen no subible (no es data URL): el cambio queda solo local.
+          return;
+        }
+        final remote = op.op == RemoteOutboxDataSource.opPost
+            ? await remoteDataSource.postPicto(model, imageBase64: base64, imageMime: mime)
+            : await remoteDataSource.putPicto(model, imageBase64: base64, imageMime: mime);
+        // RNF-5.10 (adopción): si el server tenía una versión más nueva
+        // (409), el picto local adopta los DATOS del server pero conserva
+        // su imagen local (data URL) para seguir funcionando offline.
+        if (remote.updatedAt.isAfter(model.updatedAt)) {
+          await _adoptRemotePictoData(remote);
+        }
+    }
+  }
+
+  Future<void> _flushCategory(OutboxOperation op) async {
+    if (op.op == RemoteOutboxDataSource.opDelete) {
+      await remoteDataSource.deleteCategory(op.id);
+      return;
+    }
+    final model = op.category;
+    if (model == null) {
+      return;
+    }
+    switch (op.op) {
+      case RemoteOutboxDataSource.opPost:
+      case RemoteOutboxDataSource.opPut:
+        final remote = op.op == RemoteOutboxDataSource.opPost
+            ? await remoteDataSource.postCategory(model)
+            : await remoteDataSource.putCategory(model);
+        // Adopción: si el server tenía otra versión (409), gana la suya.
+        if (remote.name != model.name || remote.color != model.color) {
+          await customDataSource.saveCategory(Category(
+            id: remote.id,
+            name: remote.name,
+            color: Color(remote.color),
+            icon: remote.icon,
+            custom: true,
+          ));
+        }
+    }
+  }
+
+  /// Adopción de la versión ganadora (RNF-5.10): actualiza el storage local
+  /// del picto custom con label/categorías del server, conservando imagen y
+  /// dueño locales (la copia offline del dispositivo dueño manda).
+  Future<void> _adoptRemotePictoData(PictoModel remote) async {
+    final stored = await customDataSource.loadPictos();
+    final target = stored.where((picto) => picto.id == remote.id).firstOrNull;
+    if (target == null) {
+      return;
+    }
+    await customDataSource.savePicto(Picto(
+      id: target.id,
+      label: remote.label,
+      categoryIds: remote.categoryIds,
+      source: PictoSource.custom,
+      imageUrl: target.imageUrl,
+      childProfileId: target.childProfileId,
+      createdAt: target.createdAt,
+      updatedAt: remote.updatedAt,
+    ));
+  }
+
+  /// (mime, base64) de la imagen del picto; base64 `null` si no es un data
+  /// URL subible.
+  (String, String?) _imagePayload(String? imageUrl) {
+    if (imageUrl == null || !DataUrl.isDataUrl(imageUrl)) {
+      return ('image/png', null);
+    }
+    try {
+      final (mime, base64) = DataUrl.split(imageUrl);
+      return (mime, base64);
+    } on FormatException {
+      return ('image/png', null);
+    }
+  }
+
+  Future<void> _enqueuePicto(Picto picto, String op, {bool imageChanged = true}) async {
+    final model = PictoModel.fromEntity(picto);
+    await outboxDataSource.enqueue(
+      kind: RemoteOutboxDataSource.kindPicto,
+      op: op,
+      id: picto.id,
+      picto: model,
+    );
+    onUploadEnqueued?.call();
+    // RF-5.16: fire-and-forget — se intenta subir ya mismo; si falla, el
+    // outbox espera el próximo arranque/flush.
+    unawaited(flushOutbox());
+  }
+
+  Future<void> _enqueueCategory(Category category, String op) async {
+    final model = CategoryModel.fromEntity(category);
+    await outboxDataSource.enqueue(
+      kind: RemoteOutboxDataSource.kindCategory,
+      op: op,
+      id: category.id,
+      category: model,
+    );
+    onUploadEnqueued?.call();
+    unawaited(flushOutbox());
+  }
+
+  Future<void> _enqueue({required String kind, required String op, required String id}) async {
+    await outboxDataSource.enqueue(kind: kind, op: op, id: id);
+    onUploadEnqueued?.call();
+    unawaited(flushOutbox());
   }
 
   static DateTime _newest(DateTime a, DateTime b) => a.isAfter(b) ? a : b;
