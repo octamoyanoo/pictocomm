@@ -20,24 +20,24 @@ Decisiones del usuario:
 
 ## 2. Estado actual
 
-Implementado (REQ-BCK-01, estado al 2026-11-16):
+Implementado y verificado por tests (estado al 2026-11-17):
 
-- API de solo lectura (`GET /health`, `/api/v1/categories`, `/api/v1/pictos[/{id}]`, `/images/*`) sobre seed JSON en memoria.
-- Sync de descarga al arrancar (incremental por `updatedAt`), cache en SharedPreferences, merge en lectura, fallo silencioso.
-- El repositorio **rechaza** borrar remotos (RF-5.9); el sync solo corre al arrancar; no hay subida ni estado visible.
-- Formato JSON compartido `PictoModel`/`CategoryModel` (v1: `categoryId` único; REQ-CAT-02 lo cambia a `categoryIds`).
+- API de lectura v1 (`GET /health`, `/api/v1/categories`, `/api/v1/pictos[/{id}]`, `/images/*`) más **escritura** (`POST`/`PUT`/`DELETE` de pictos y categorías) sobre seed + `data/uploads.json` persistido.
+- Sync de descarga al arrancar (incremental por `updatedAt`), cache en SharedPreferences, merge en lectura, fallo silencioso; purga de tumbas en el sync.
+- Subida con outbox persistente (reintentos al arrancar, tras cada operación y con el botón), conflictos last-write-wins, borrado lógico con tumbas, imágenes subidas guardadas como archivos.
+- Indicador de estado de sync + "Sincronizar ahora" en modo adulto (Pantalla Perfil).
 
 ## 3. Estado objetivo (elementos definidos)
 
 | Elemento | Contenido | Estado |
 |---|---|---|
-| API de escritura | `POST`/`PUT`/`DELETE` en `/api/v1/pictos` y `/api/v1/categories` | **A implementar** |
-| Persistencia de subidas | `data/uploads.json` (mismo formato que el seed) + `data/images/uploads/` | **A implementar** |
-| Imágenes subidas | Base64 → archivo en el server; `imageUrl` absoluta en respuestas | **A implementar** |
-| Borrado lógico | `deletedAt`; `GET` lista excluye borrados; el sync entrega tumbas para purgar cache | **A implementar** |
-| Conflictos | Last-write-wins por `updatedAt` (ISO-8601 UTC) | **A implementar** |
-| Cola de salida (outbox) | Cambios pendientes en SharedPreferences; flush al arrancar y tras cada cambio | **A implementar** |
-| UI de estado de sync | Indicador + "sincronizar ahora" en modo adulto; invisible para el chico | **A implementar** |
+| API de escritura | `POST`/`PUT`/`DELETE` en `/api/v1/pictos` y `/api/v1/categories` | **Implementado** |
+| Persistencia de subidas | `data/uploads.json` (mismo formato que el seed) + `data/images/uploads/` | **Implementado** |
+| Imágenes subidas | Base64 → archivo en el server; `imageUrl` absoluta en respuestas | **Implementado** |
+| Borrado lógico | `deletedAt`; `GET` lista excluye borrados; el sync entrega tumbas para purgar cache | **Implementado** |
+| Conflictos | Last-write-wins por `updatedAt` (ISO-8601 UTC) | **Implementado** |
+| Cola de salida (outbox) | Cambios pendientes en SharedPreferences; flush al arrancar y tras cada cambio | **Implementado** |
+| UI de estado de sync | Indicador + "sincronizar ahora" en modo adulto; invisible para el chico | **Implementado** |
 
 ## 4. Requerimientos funcionales
 
@@ -145,7 +145,7 @@ Implementado (REQ-BCK-01, estado al 2026-11-16):
 | CA-5.18 | **Given** una subida con base64 corrupto o campos faltantes, **when** llega al server, **then** responde 400 con `{"error": ...}` y la app lo deja en el outbox (no lo descarta). |
 | CA-5.19 | **Given** un reinicio del server, **when** arranca, **then** carga seed + uploads (lo subido sobrevive) sin tocar `seed.json`. |
 
-Cobertura de tests (prevista): backend `src/backend/test/` (CRUD, conflictos, tumbas, persistencia de uploads, reinicio), frontend `test/` (outbox, flush, dedup RF-5.18, indicador, purge por `deletedAt`), con fakes al nuevo contrato.
+Cobertura de tests: backend `src/backend/test/` (`upload_test.dart` con 10 tests de CRUD/conflictos/tumbas/persistencia + `api_test.dart` con los 13 de v1) y frontend `test/sync_upload_test.dart` (9 tests: outbox, flush, adopción de conflictos, purga por tumba, dedup RF-5.18, estados del `SyncService`), con fakes al nuevo contrato.
 
 ## 8. Fuera de alcance
 

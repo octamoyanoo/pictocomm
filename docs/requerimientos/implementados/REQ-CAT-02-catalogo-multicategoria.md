@@ -18,23 +18,24 @@ Decisiones del usuario: sí a multi-categoría en esta iteración (agrupado con 
 
 ## 2. Estado actual
 
-Implementado (REQ-CAT-01, estado al 2026-11-16):
+Implementado y verificado por tests (estado al 2026-11-17):
 
-- `Picto.categoryId` es un único string; la creación exige elegir una categoría (chips de selección simple) y solo se llega desde (+) en modo adulto.
-- No existe UI de edición: RF-3.7 deja los pictos legacy sin dueño "visibles para todos hasta que se agregue edición (v2)".
-- Borrar una categoría elimina en cascada los pictos de esa categoría del chico activo; los de otros chicos quedan apuntando a un id de categoría inexistente (huérfanos).
+- `Picto.categoryIds` es una lista; la creación global (+) marca 1..n categorías con chips multi-select y la entrada desde una categoría la pre-selecciona.
+- Edición de pictos y categorías custom con lápiz (detalle y pantalla de categoría); los legacy sin dueño (RF-3.7) son asignables al editar.
+- La cascada de borrado de categoría quita membresías: solo se eliminan los pictos que quedan sin ninguna (del chico activo); los de otros chicos sobreviven huérfanos con lista vacía.
+- Compat JSON: el formato v1 (`categoryId`) se migra al leer (CA-3.18).
 
 ## 3. Estado objetivo (elementos definidos)
 
 | Elemento | Contenido | Estado |
 |---|---|---|
-| Pertenencia múltiple | `Picto.categoryIds` (lista no vacía); JSON compat con `categoryId` de v1 | **A implementar** |
-| Creación global | (+) → Nuevo pictograma: imagen + nombre + 1..n categorías (multi-select) | **A implementar** |
-| Entrada desde categoría | Crear picto dentro de una categoría pre-selecciona esa categoría (se pueden sumar otras) | **A implementar** |
-| Visibilidad en grillas | Un picto multicategoría aparece en **cada una** de sus categorías | **A implementar** |
-| Edición de picto | Nombre, imagen (mismas fuentes) y categorías; solo custom | **A implementar** |
-| Edición de categoría | Nombre y color; solo custom | **A implementar** |
-| Dueño en edición | Pictos legacy sin dueño (RF-3.7): asignables al editar | **A implementar** |
+| Pertenencia múltiple | `Picto.categoryIds` (lista no vacía); JSON compat con `categoryId` de v1 | **Implementado** |
+| Creación global | (+) → Nuevo pictograma: imagen + nombre + 1..n categorías (multi-select) | **Implementado** |
+| Entrada desde categoría | Crear picto dentro de una categoría pre-selecciona esa categoría (se pueden sumar otras) | **Implementado** |
+| Visibilidad en grillas | Un picto multicategoría aparece en **cada una** de sus categorías | **Implementado** |
+| Edición de picto | Nombre, imagen (mismas fuentes) y categorías; solo custom | **Implementado** |
+| Edición de categoría | Nombre y color; solo custom | **Implementado** |
+| Dueño en edición | Pictos legacy sin dueño (RF-3.7): asignables al editar | **Implementado** |
 
 ## 4. Requerimientos funcionales
 
@@ -140,7 +141,7 @@ Implementado (REQ-CAT-01, estado al 2026-11-16):
 | CA-3.18 | **Given** un cache/storage en formato v1 (`categoryId`), **when** se lee, **then** se migra a `categoryIds` de un elemento sin pérdida. |
 | CA-3.19 | **Given** una categoría custom, **when** se renombra, **then** los pictos conservan su pertenencia (por id) y no hay duplicados. |
 
-Cobertura de tests (prevista): `test/catalog_models_test.dart` (migración JSON), `test/agregar_catalogo_test.dart` (multi-select, edición), `test/cascada_test.dart` (borrado de categoría con multi-pertenencia), fakes actualizados al nuevo contrato.
+Cobertura de tests: `test/catalog_models_test.dart` (roundtrip + migración JSON v1), `test/catalog_multicategoria_test.dart` (multi-categoría, edición, cascada con multi-pertenencia, renombrado, asignación de legacy — 9 tests), `test/catalog_perfil_test.dart` (visibilidad/borrado por chico) y `test/helpers/fakes.dart` con el mismo contrato que la implementación real.
 
 ## 8. Fuera de alcance
 
