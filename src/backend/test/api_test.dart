@@ -25,10 +25,10 @@ Future<Map<String, dynamic>> getJson(String path) async {
 CatalogStore _store() => CatalogStore.loadFrom('data/seed.json');
 
 void main() {
-  test('el seed del repo carga 2 categorías y 9 pictos', () {
+  test('el seed del repo carga 2 categorías y 10 pictos', () {
     final store = _store();
     expect(store.categories.map((c) => c.id), ['lugares', 'rutina']);
-    expect(store.pictos, hasLength(9));
+    expect(store.pictos, hasLength(10));
   });
 
   test('un seed inválido arranca con catálogo vacío, sin crashear (UC-01.2 alt 1)', () {
@@ -65,7 +65,7 @@ void main() {
     final response = await getJson('/api/v1/pictos');
     expect(response['status'], 200);
     final pictos = response['body']['pictos'] as List<dynamic>;
-    expect(pictos, hasLength(9));
+    expect(pictos, hasLength(10));
     final casa = pictos.first as Map<String, dynamic>;
     expect(casa['id'], 'remote-lugares-casa');
     expect(casa['label'], 'casa');
@@ -90,7 +90,7 @@ void main() {
   test('GET /api/v1/pictos?since es incremental y estricto (CA-5.3, RF-5.7)', () async {
     // Antes de todo el seed → devuelve todo.
     final all = await getJson('/api/v1/pictos?since=2026-10-01T00:00:00.000Z');
-    expect(all['body']['pictos'], hasLength(9));
+    expect(all['body']['pictos'], hasLength(10));
 
     // Exactamente igual al updatedAt de pileta → excluido (estricto).
     final strict = await getJson('/api/v1/pictos?since=2026-11-01T12:05:00.000Z');

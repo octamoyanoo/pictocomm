@@ -1,8 +1,6 @@
 # Backend y sync del catálogo (descarga)
 
-> ⚠️ **Pendiente de aprobar:** funcionalidad recién implementada. Falta revisarla contra el código (v1 del backend + sync de descarga). El requerimiento normativo es [`REQ-BCK-01-backend-sync.md`](../../requerimientos/implementados/REQ-BCK-01-backend-sync.md).
-
-Funcionalidad que **descarga un catálogo ampliado desde un backend propio y lo mergea con lo que ya tiene la app, sin tocar pantallas ni providers** en **PictoComm**. Es una de las funcionalidades listadas en [`0000-index.md`](../0000-index.md).
+Funcionalidad que **descarga un catálogo ampliado desde un backend propio y lo mergea con lo que ya tiene la app, sin tocar pantallas ni providers** en **PictoComm**. Es una de las funcionalidades listadas en [`0000-index.md`](../0000-index.md). El requerimiento normativo es [`REQ-BCK-01-backend-sync.md`](../../requerimientos/implementados/REQ-BCK-01-backend-sync.md).
 
 ---
 
@@ -31,7 +29,7 @@ Es una funcionalidad **invisible por diseño**: no agrega pantallas, botones ni 
 | Server | `bin/server.dart` | `shelf_io.serve` en `localhost:8080` (env `PORT`); carga el seed y monta la API con CORS abierto |
 | Store | `lib/src/catalog_store.dart` | Parsea `data/seed.json` a memoria (`SeedCategory`/`SeedPicto`); seed inválido → catálogo vacío, no crash |
 | API | `lib/src/api_handler.dart` | Router con los endpoints de abajo; serializa pictos con `source: "remote"` y `imageUrl` **absoluta** (construida del request) |
-| Seed | `data/seed.json` | 2 categorías (lugares, rutina) + 9 pictos (4 lugares, 3 rutina, agua en alimentos, cansado en emociones); fechas ISO-8601 UTC |
+| Seed | `data/seed.json` | 2 categorías (lugares, rutina) + 10 pictos (5 lugares, 3 rutina, agua en alimentos, cansado en emociones); fechas ISO-8601 UTC |
 | Imágenes | `data/images/*.png` | PNG 256×256 servidos como estáticos con mime real y cache de 1 día |
 | Tests | `test/api_test.dart` | 13 tests: seed, filtros, 400/404, formatos, imágenes |
 

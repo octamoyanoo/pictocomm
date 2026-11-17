@@ -1,7 +1,7 @@
 # REQ-BCK-01 — Backend y sync del catálogo (descarga)
 
 **Mockup:** sin mockup propio (funcionalidad de infraestructura; no agrega pantallas)
-**Specs vigentes:** [`backend-sync.md`](../../specs/por-aprobar/backend-sync.md)
+**Specs vigentes:** [`backend-sync.md`](../../specs/aprobadas/backend-sync.md)
 **Archivos implicados:** `src/backend/` (nuevo paquete Dart), `lib/features/catalog/data/datasources/remote_catalog_data_source.dart`, `.../remote_catalog_cache_data_source.dart` (nuevo), `lib/features/catalog/data/repositories/local_picto_repository.dart`, `lib/core/di/injector.dart`
 
 ---

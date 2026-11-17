@@ -36,4 +36,4 @@ Listado general de las funcionalidades implementadas en **PictoComm**, con una d
 
 ## Backend y sync
 
-- [**Backend y sync del catálogo (descarga)**](./por-aprobar/backend-sync.md) — Backend Dart (shelf) en `src/backend/` que sirve un catálogo ampliado desde un seed JSON; la app lo sincroniza al arrancar (incremental por `updatedAt`), lo cachea local y lo mergea con lo suyo. Pendiente de aprobar.
+- [**Backend y sync del catálogo (descarga)**](./aprobadas/backend-sync.md) — Backend Dart (shelf) en `src/backend/` que sirve un catálogo ampliado desde un seed JSON; la app lo sincroniza al arrancar (incremental por `updatedAt`), lo cachea local y lo mergea con lo suyo.
