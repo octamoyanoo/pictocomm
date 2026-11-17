@@ -1,4 +1,4 @@
-import 'dart:convert';
+﻿import 'dart:convert';
 import 'dart:io';
 
 import 'package:pictocomm_backend/pictocomm_backend.dart';
@@ -86,7 +86,7 @@ void main() {
     expect(ids, contains('custom-test-leche'));
   });
 
-  test('RF-5.12/CA-5.18: subidas inválidas responden 400 con error JSON', () async {
+  test('RF-5.12/CA-5.18: subidas invÃ¡lidas responden 400 con error JSON', () async {
     expect((await callJson('POST', '/api/v1/pictos', body: uploadBody(label: ' ')))['status'], 400);
     expect((await callJson('POST', '/api/v1/pictos', body: uploadBody(categoryIds: <String>[])))['status'], 400);
     expect((await callJson('POST', '/api/v1/pictos', body: uploadBody(imageData: '')))['status'], 400);
@@ -97,7 +97,7 @@ void main() {
     expect((await callJson('POST', '/api/v1/pictos', body: noDate))['status'], 400);
   });
 
-  test('RF-5.12: POST con id duplicado responde 409 con la versión guardada', () async {
+  test('RF-5.12: POST con id duplicado responde 409 con la versiÃ³n guardada', () async {
     await callJson('POST', '/api/v1/pictos', body: uploadBody(id: 'custom-dup', updatedAt: '2026-11-11T10:00:00.000Z'));
     final second = await callJson(
       'POST',
@@ -108,7 +108,7 @@ void main() {
     expect(second['body']['label'], 'leche');
   });
 
-  test('RF-5.13/CA-5.11: PUT edita nombre/categorías y el updatedAt refleja la edición', () async {
+  test('RF-5.13/CA-5.11: PUT edita nombre/categorÃ­as y el updatedAt refleja la ediciÃ³n', () async {
     await callJson('POST', '/api/v1/pictos', body: uploadBody(id: 'custom-edit'));
     final updated = await callJson(
       'PUT',
@@ -125,15 +125,15 @@ void main() {
     expect(updated['body']['updatedAt'], '2026-11-11T09:00:00.000Z');
   });
 
-  test('RF-5.13/CA-5.12: last-write-wins — la edición más vieja no pisa la más nueva', () async {
+  test('RF-5.13/CA-5.12: last-write-wins â€” la ediciÃ³n mÃ¡s vieja no pisa la mÃ¡s nueva', () async {
     await callJson('POST', '/api/v1/pictos', body: uploadBody(id: 'custom-lww', updatedAt: '2026-11-12T12:00:00.000Z'));
     final stale = await callJson(
       'PUT',
       '/api/v1/pictos/custom-lww',
-      body: <String, Object>{'label': 'versión vieja', 'updatedAt': '2026-11-11T12:00:00.000Z'},
+      body: <String, Object>{'label': 'versiÃ³n vieja', 'updatedAt': '2026-11-11T12:00:00.000Z'},
     );
     expect(stale['status'], 200);
-    expect(stale['body']['label'], 'leche', reason: 'la respuesta SIEMPRE trae la versión ganadora');
+    expect(stale['body']['label'], 'leche', reason: 'la respuesta SIEMPRE trae la versiÃ³n ganadora');
   });
 
   test('RF-5.13: PUT sobre seed responde 403, inexistente 404', () async {
@@ -178,7 +178,7 @@ void main() {
     expect((await callJson('DELETE', '/api/v1/pictos/custom-nada'))['status'], 404);
   });
 
-  test('RF-5.15: categorías — alta, edición y borrado lógico con tumbas', () async {
+  test('RF-5.15: categorÃ­as â€” alta, ediciÃ³n y borrado lÃ³gico con tumbas', () async {
     final created = await callJson('POST', '/api/v1/categories', body: {
       'id': 'custom-estudio',
       'name': 'Estudio',
@@ -195,7 +195,7 @@ void main() {
     expect(renamed['status'], 200);
     expect(renamed['body']['name'], 'Estudio Casa');
 
-    // Conflicto: la edición más vieja no pisa (RNF-5.10).
+    // Conflicto: la ediciÃ³n mÃ¡s vieja no pisa (RNF-5.10).
     final stale = await callJson('PUT', '/api/v1/categories/custom-estudio', body: {
       'name': 'viejo',
       'updatedAt': '2026-11-10T10:00:00.000Z',
@@ -228,9 +228,9 @@ void main() {
     final reloaded = CatalogStore.loadFrom('data${Platform.pathSeparator}seed.json', uploadsPath: uploadsPath);
     expect(reloaded.pictoById('custom-persist')!.isDeleted, isTrue);
     expect(reloaded.categoryById('custom-cat'), isNotNull);
-    // El seed curado no cambió.
+    // El seed curado no cambiÃ³.
     expect(reloaded.pictoById('remote-lugares-casa'), isNotNull);
-    expect(reloaded.pictos, hasLength(10), reason: 'el borrado lógico no saca items del seed');
+    expect(reloaded.pictos, hasLength(13), reason: 'el borrado lÃ³gico no saca items del seed');
 
     // El uploads.json escrito tiene formato de seed + deletedAt.
     final uploads = jsonDecode(File(uploadsPath).readAsStringSync()) as Map<String, dynamic>;
@@ -238,3 +238,5 @@ void main() {
     expect(uploads['categories'], hasLength(1));
   });
 }
+
+

@@ -1,4 +1,4 @@
-import 'dart:convert';
+﻿import 'dart:convert';
 import 'dart:io';
 
 import 'package:pictocomm_backend/pictocomm_backend.dart';
@@ -20,18 +20,18 @@ Future<Map<String, dynamic>> getJson(String path) async {
   };
 }
 
-/// Seed del repo (RF-5.3): 2 categorías propias (lugares, rutina) + pictos en
-/// categorías bundled (alimentos, emociones).
+/// Seed del repo (RF-5.3): 2 categorÃ­as propias (lugares, rutina) + pictos en
+/// categorÃ­as bundled (alimentos, emociones).
 CatalogStore _store() => CatalogStore.loadFrom('data/seed.json');
 
 void main() {
-  test('el seed del repo carga 2 categorías y 10 pictos', () {
+  test('el seed del repo carga 2 categorÃ­as y 10 pictos', () {
     final store = _store();
     expect(store.categories.map((c) => c.id), ['lugares', 'rutina']);
-    expect(store.pictos, hasLength(10));
+    expect(store.pictos, hasLength(13));
   });
 
-  test('un seed inválido arranca con catálogo vacío, sin crashear (UC-01.2 alt 1)', () {
+  test('un seed invÃ¡lido arranca con catÃ¡logo vacÃ­o, sin crashear (UC-01.2 alt 1)', () {
     final directory = Directory.systemTemp.createTempSync('pictocomm_seed');
     addTearDown(() => directory.deleteSync(recursive: true));
     final path = '${directory.path}${Platform.pathSeparator}bad.json';
@@ -65,7 +65,7 @@ void main() {
     final response = await getJson('/api/v1/pictos');
     expect(response['status'], 200);
     final pictos = response['body']['pictos'] as List<dynamic>;
-    expect(pictos, hasLength(10));
+    expect(pictos, hasLength(13));
     final casa = pictos.first as Map<String, dynamic>;
     expect(casa['id'], 'remote-lugares-casa');
     expect(casa['label'], 'casa');
@@ -78,10 +78,12 @@ void main() {
     expect(casa['childProfileId'], null);
   });
 
-  test('GET /api/v1/pictos?categoryId filtra por categoría (CA-5.3)', () async {
+  test('GET /api/v1/pictos?categoryId filtra por categorÃ­a (CA-5.3)', () async {
     final response = await getJson('/api/v1/pictos?categoryId=rutina');
     final pictos = response['body']['pictos'] as List<dynamic>;
     expect(pictos.map((p) => (p as Map<String, dynamic>)['id']), [
+      'remote-rutina-vestirse',
+      'remote-rutina-manos',
       'remote-rutina-dormir',
       'remote-rutina-banarse',
       'remote-rutina-dientes',
@@ -89,17 +91,17 @@ void main() {
   });
 
   test('GET /api/v1/pictos?since es incremental y estricto (CA-5.3, RF-5.7)', () async {
-    // Antes de todo el seed → devuelve todo.
+    // Antes de todo el seed â†’ devuelve todo.
     final all = await getJson('/api/v1/pictos?since=2026-10-01T00:00:00.000Z');
-    expect(all['body']['pictos'], hasLength(10));
+    expect(all['body']['pictos'], hasLength(13));
 
-    // Exactamente igual al updatedAt de pileta → excluido (estricto).
+    // Exactamente igual al updatedAt de pileta â†’ excluido (estricto).
     final strict = await getJson('/api/v1/pictos?since=2026-11-01T12:05:00.000Z');
     final strictIds = (strict['body']['pictos'] as List).map((p) => (p as Map)['id']);
     expect(strictIds, isNot(contains('remote-lugares-pileta')));
     expect(strictIds, contains('remote-lugares-abuela'));
 
-    // Después de todo el seed → vacío (re-sync sin cambios, CA-5.7).
+    // DespuÃ©s de todo el seed â†’ vacÃ­o (re-sync sin cambios, CA-5.7).
     final none = await getJson('/api/v1/pictos?since=2026-12-01T00:00:00.000Z');
     expect(none['body']['pictos'], isEmpty);
   });
@@ -145,3 +147,4 @@ void main() {
     expect(response.statusCode, 404);
   });
 }
+

@@ -50,6 +50,33 @@
       "updatedAt": "2026-11-04T10:00:00.000Z"
     },
     {
+      "id": "remote-lugares-hospital",
+      "label": "hospital",
+      "categoryIds": ["lugares"],
+      "image": "hospital.png",
+      "childProfileId": null,
+      "createdAt": "2026-11-05T09:00:00.000Z",
+      "updatedAt": "2026-11-05T09:00:00.000Z"
+    },
+    {
+      "id": "remote-rutina-vestirse",
+      "label": "vestirse",
+      "categoryIds": ["rutina"],
+      "image": "vestirse.png",
+      "childProfileId": null,
+      "createdAt": "2026-11-05T09:00:00.000Z",
+      "updatedAt": "2026-11-05T09:00:00.000Z"
+    },
+    {
+      "id": "remote-rutina-manos",
+      "label": "lavarse las manos",
+      "categoryIds": ["rutina"],
+      "image": "manos.png",
+      "childProfileId": null,
+      "createdAt": "2026-11-05T09:00:00.000Z",
+      "updatedAt": "2026-11-05T09:00:00.000Z"
+    },
+    {
       "id": "remote-rutina-dormir",
       "label": "dormir",
       "categoryIds": ["rutina"],
