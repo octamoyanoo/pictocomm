@@ -4,6 +4,7 @@ import '../../domain/entities/child_profile.dart';
 
 /// Serialización de [ChildProfile] para almacenamiento local (RF2.11).
 /// El formato JSON queda listo para el backend sin cambiar el dominio.
+/// REQ-ACC-01 (RF-6.6): `accountId` tagea la cuenta dueña (`null` = legacy).
 final class ChildProfileModel {
   const ChildProfileModel({
     required this.id,
@@ -11,6 +12,7 @@ final class ChildProfileModel {
     required this.avatarColorValue,
     this.age,
     this.photoUrl,
+    this.accountId,
   });
 
   final String id;
@@ -23,6 +25,9 @@ final class ChildProfileModel {
   /// Foto del niño como data URL (RF3.11).
   final String? photoUrl;
 
+  /// Cuenta dueña del perfil (RF-6.6); `null` para los legacy.
+  final String? accountId;
+
   factory ChildProfileModel.fromChild(ChildProfile child) {
     return ChildProfileModel(
       id: child.id,
@@ -30,6 +35,7 @@ final class ChildProfileModel {
       age: child.age,
       avatarColorValue: child.avatarColor?.toARGB32(),
       photoUrl: child.photoUrl,
+      accountId: child.accountId,
     );
   }
 
@@ -40,6 +46,7 @@ final class ChildProfileModel {
       age: json['age'] as int?,
       avatarColorValue: json['avatarColorValue'] as int?,
       photoUrl: json['photoUrl'] as String?,
+      accountId: json['accountId'] as String?,
     );
   }
 
@@ -50,6 +57,7 @@ final class ChildProfileModel {
       age: age,
       avatarColor: avatarColorValue == null ? null : Color(avatarColorValue!),
       photoUrl: photoUrl,
+      accountId: accountId,
     );
   }
 
@@ -60,6 +68,7 @@ final class ChildProfileModel {
       'age': age,
       'avatarColorValue': avatarColorValue,
       'photoUrl': photoUrl,
+      'accountId': accountId,
     };
   }
 }

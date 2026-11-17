@@ -30,6 +30,15 @@
   "haveAccount": "Já tem uma conta? ",
   "loginLinkHere": "Entrar",
 
+  "authInvalidCredentials": "E-mail ou senha incorretos",
+  "authEmailInUse": "Já existe uma conta com este e-mail",
+  "authConnectionError": "Sem conexão com o servidor. Tente novamente.",
+  "authUnexpectedError": "Não foi possível concluir a operação. Tente novamente.",
+  "accountSection": "Conta",
+  "logout": "Sair da conta",
+  "logoutConfirmTitle": "Sair da conta?",
+  "logoutConfirmContent": "Você voltará à tela de login.",
+
   "hola": "Olá 👋",
   "holaName": "Olá, {name} 👋",
   "@holaName": { "placeholders": { "name": { "type": "String" } } },

@@ -30,6 +30,15 @@
   "haveAccount": "Already have an account? ",
   "loginLinkHere": "Sign In",
 
+  "authInvalidCredentials": "Incorrect email or password",
+  "authEmailInUse": "An account with this email already exists",
+  "authConnectionError": "No connection to the server. Please try again.",
+  "authUnexpectedError": "The operation could not be completed. Please try again.",
+  "accountSection": "Account",
+  "logout": "Sign out",
+  "logoutConfirmTitle": "Sign out?",
+  "logoutConfirmContent": "You will return to the sign-in screen.",
+
   "hola": "Hi 👋",
   "holaName": "Hi, {name} 👋",
   "@holaName": { "placeholders": { "name": { "type": "String" } } },

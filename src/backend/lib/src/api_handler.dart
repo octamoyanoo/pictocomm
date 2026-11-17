@@ -4,11 +4,16 @@ import 'dart:io';
 import 'package:shelf/shelf.dart';
 import 'package:shelf_router/shelf_router.dart';
 
+import 'account_store.dart';
 import 'catalog_store.dart';
 
-/// Rutas de la API (RF-5.1 + REQ-BCK-02 RF-5.12 a RF-5.15):
+/// Rutas de la API (RF-5.1 + REQ-BCK-02 RF-5.12 a RF-5.15 + REQ-ACC-01 RF-6.x):
 ///
 /// - `GET  /health`
+/// - `POST /api/v1/auth/register`       (crear cuenta, RF-6.1)
+/// - `POST /api/v1/auth/login`          (login con token, RF-6.2)
+/// - `GET  /api/v1/auth/me`             (validar token, RF-6.3)
+/// - `POST /api/v1/auth/logout`         (cerrar sesión, RF-6.5)
 /// - `GET  /api/v1/categories`            (incluye tumbas con `deletedAt`)
 /// - `POST /api/v1/categories`
 /// - `PUT  /api/v1/categories/{id}`
@@ -27,11 +32,66 @@ const int maxPictosLimit = 500;
 /// Mimes de imagen aceptados para las subidas (RNF-5.9).
 const Set<String> _allowedImageMimes = {'image/png', 'image/jpeg', 'image/webp'};
 
-Router buildApiRouter({required CatalogStore store, required String imagesDirectory}) {
+Router buildApiRouter({
+  required CatalogStore store,
+  required String imagesDirectory,
+  AccountStore? accounts,
+}) {
   final router = Router();
   final uploadsDirectory = '$imagesDirectory${Platform.pathSeparator}uploads';
 
   router.get('/health', (Request request) async {
+    return _json(200, <String, dynamic>{'status': 'ok'});
+  });
+
+  // ---- Cuentas y sesiones (REQ-ACC-01) ----
+
+  router.post('/api/v1/auth/register', (Request request) async {
+    final result = _withAccountBody(request, (name, email, password) {
+      if (accounts == null) {
+        return _json(503, <String, dynamic>{'error': 'el server no tiene cuentas habilitadas'});
+      }
+      return switch (accounts.register(name: name, email: email, password: password)) {
+        AccountCreated(:final account) => _sessionResponse(201, account, accounts.createSession(account)),
+        AccountEmailInUse() => _json(409, <String, dynamic>{'error': 'ya existe una cuenta con ese email'}),
+        AccountInvalidInput(:final message) => _json(400, <String, dynamic>{'error': message}),
+        _ => _json(500, <String, dynamic>{'error': 'resultado inesperado del registro'}),
+      };
+    });
+    return result;
+  });
+
+  router.post('/api/v1/auth/login', (Request request) async {
+    final result = _withAccountBody(request, (name, email, password) {
+      if (accounts == null) {
+        return _json(503, <String, dynamic>{'error': 'el server no tiene cuentas habilitadas'});
+      }
+      return switch (accounts.login(email: email, password: password)) {
+        AccountLoggedIn(:final account) => _sessionResponse(200, account, accounts.createSession(account)),
+        AccountInvalidCredentials() => _json(401, <String, dynamic>{'error': 'email o contraseña incorrectos'}),
+        AccountInvalidInput(:final message) => _json(400, <String, dynamic>{'error': message}),
+        _ => _json(500, <String, dynamic>{'error': 'resultado inesperado del login'}),
+      };
+    });
+    return result;
+  });
+
+  router.get('/api/v1/auth/me', (Request request) async {
+    final auth = _authorize(request, accounts);
+    if (auth == null) {
+      return _json(401, <String, dynamic>{'error': 'token ausente, inválido o vencido'});
+    }
+    final (_, account) = auth;
+    return _json(200, _accountJson(account));
+  });
+
+  router.post('/api/v1/auth/logout', (Request request) async {
+    final auth = _authorize(request, accounts);
+    if (auth == null) {
+      return _json(401, <String, dynamic>{'error': 'token ausente, inválido o vencido'});
+    }
+    final (session, _) = auth;
+    accounts!.logout(session.token);
     return _json(200, <String, dynamic>{'status': 'ok'});
   });
 
@@ -304,6 +364,64 @@ Router buildApiRouter({required CatalogStore store, required String imagesDirect
   });
 
   return router;
+}
+
+// ---- Helpers de auth (REQ-ACC-01) ----
+
+/// Lee el cuerpo JSON de register/login (RF-6.1/RF-6.2) y ejecuta [action]
+/// con (name, email, password); los campos faltantes llegan como string
+/// vacío (el store valida y responde 400).
+Future<Response> _withAccountBody(
+  Request request,
+  Response Function(String name, String email, String password) action,
+) async {
+  final body = await _readJsonBody(request);
+  if (body == null) {
+    return _json(400, <String, dynamic>{'error': 'el cuerpo debe ser JSON'});
+  }
+  return action(
+    (body['name'] as String?) ?? '',
+    (body['email'] as String?) ?? '',
+    (body['password'] as String?) ?? '',
+  );
+}
+
+/// Valida el header `Authorization: Bearer <token>` (RF-6.3). Devuelve la
+/// sesión y la cuenta, o null si falta el header, el token no existe o
+/// venció (el caller responde 401).
+(StoredSession, StoredAccount)? _authorize(Request request, AccountStore? accounts) {
+  if (accounts == null) {
+    return null;
+  }
+  final header = request.headers['authorization'] ?? request.headers['Authorization'];
+  if (header == null) {
+    return null;
+  }
+  final match = RegExp(r'^Bearer (.+)$', caseSensitive: false).firstMatch(header.trim());
+  final token = match?.group(1);
+  if (token == null || token.isEmpty) {
+    return null;
+  }
+  return accounts.sessionByToken(token);
+}
+
+/// Cuerpo de register/login exitoso: la cuenta + el token de sesión con su
+/// expiración (ISO-8601 UTC, RNF-5.6). El hash de la contraseña NUNCA viaja.
+Response _sessionResponse(int status, StoredAccount account, StoredSession session) {
+  return _json(status, <String, dynamic>{
+    'account': _accountJson(account),
+    'token': session.token,
+    'expiresAt': session.expiresAt.toUtc().toIso8601String(),
+  });
+}
+
+/// Serializa una cuenta para la API: id, nombre y email. Sin salt ni hash.
+Map<String, dynamic> _accountJson(StoredAccount account) {
+  return <String, dynamic>{
+    'id': account.id,
+    'name': account.name,
+    'email': account.email,
+  };
 }
 
 // ---- Helpers ----

@@ -21,17 +21,22 @@ final class LocalChildProfileRepository implements ChildProfileRepository {
   final Future<void> Function(String childId)? purgePictosForChild;
 
   @override
-  Future<List<ChildProfile>> getChildren() async {
+  Future<List<ChildProfile>> getChildren({String? accountId}) async {
     try {
       final models = await dataSource.loadChildren();
-      return [for (final model in models) model.toChild()];
+      // RF-6.6: con cuenta logueada, solo sus perfiles (+ los legacy sin
+      // cuenta). Sin filtro (gestión sin sesión), todos.
+      final visible = accountId == null
+          ? models
+          : models.where((model) => model.accountId == null || model.accountId == accountId);
+      return [for (final model in visible) model.toChild()];
     } on Object catch (error) {
       throw DataSourceException('No se pudieron leer los perfiles: $error');
     }
   }
 
   @override
-  Future<ChildProfile> createChild(ChildProfile child) async {
+  Future<ChildProfile> createChild(ChildProfile child, {String? accountId}) async {
     final name = child.name.trim();
     if (name.isEmpty) {
       throw const DataSourceException('El nombre del niño no puede estar vacío');
@@ -42,6 +47,7 @@ final class LocalChildProfileRepository implements ChildProfileRepository {
       age: child.age,
       avatarColor: child.avatarColor,
       photoUrl: child.photoUrl,
+      accountId: accountId,
     );
     final models = [...await dataSource.loadChildren()];
     models.add(ChildProfileModel.fromChild(persisted));
@@ -64,6 +70,8 @@ final class LocalChildProfileRepository implements ChildProfileRepository {
       age: child.age,
       avatarColor: child.avatarColor,
       photoUrl: child.photoUrl,
+      // RF-6.6: la dueña no cambia al editar (la foto, en v1).
+      accountId: models[index].accountId,
     );
     models[index] = ChildProfileModel.fromChild(persisted);
     await dataSource.saveChildren(models);

@@ -27,10 +27,19 @@ final class ChildrenFailureState extends ChildrenState {
   final String message;
 }
 
-final class ChildrenProvider extends ChangeNotifier {
-  ChildrenProvider({required this.childProfileRepository});
+final /// REQ-ACC-01 (RF-6.6): los chicos que muestra dependen de la cuenta
+/// logueada. `accountId` se inyecta al crear el provider (la ruta lo toma
+/// del `AuthProvider`); `null` = sin sesión (gestión, ve todo).
+class ChildrenProvider extends ChangeNotifier {
+  ChildrenProvider({
+    required this.childProfileRepository,
+    this.accountId,
+  });
 
   final ChildProfileRepository childProfileRepository;
+
+  /// Cuenta logueada cuyos perfiles gestiona este provider (RF-6.6).
+  final String? accountId;
 
   ChildrenState _state = const ChildrenLoadingState();
 
@@ -40,7 +49,7 @@ final class ChildrenProvider extends ChangeNotifier {
     _state = const ChildrenLoadingState();
     notifyListeners();
     try {
-      final children = await childProfileRepository.getChildren();
+      final children = await childProfileRepository.getChildren(accountId: accountId);
       _state = ChildrenLoadedState(children: children);
     } on Object catch (error) {
       _state = ChildrenFailureState(error.toString());
@@ -59,6 +68,7 @@ final class ChildrenProvider extends ChangeNotifier {
         avatarColor: avatarColorValue == null ? null : Color(avatarColorValue),
         photoUrl: photoUrl,
       ),
+      accountId: accountId,
     );
     await load();
     return created;

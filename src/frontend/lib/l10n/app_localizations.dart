@@ -256,6 +256,54 @@ abstract class AppLocalizations {
   /// **'Inicia Sesión'**
   String get loginLinkHere;
 
+  /// No description provided for @authInvalidCredentials.
+  ///
+  /// In es, this message translates to:
+  /// **'Correo o contraseña incorrectos'**
+  String get authInvalidCredentials;
+
+  /// No description provided for @authEmailInUse.
+  ///
+  /// In es, this message translates to:
+  /// **'Ya existe una cuenta con ese correo'**
+  String get authEmailInUse;
+
+  /// No description provided for @authConnectionError.
+  ///
+  /// In es, this message translates to:
+  /// **'No hay conexión con el servidor. Probá de nuevo.'**
+  String get authConnectionError;
+
+  /// No description provided for @authUnexpectedError.
+  ///
+  /// In es, this message translates to:
+  /// **'No se pudo completar la operación. Probá de nuevo.'**
+  String get authUnexpectedError;
+
+  /// No description provided for @accountSection.
+  ///
+  /// In es, this message translates to:
+  /// **'Cuenta'**
+  String get accountSection;
+
+  /// No description provided for @logout.
+  ///
+  /// In es, this message translates to:
+  /// **'Cerrar sesión'**
+  String get logout;
+
+  /// No description provided for @logoutConfirmTitle.
+  ///
+  /// In es, this message translates to:
+  /// **'¿Cerrar sesión?'**
+  String get logoutConfirmTitle;
+
+  /// No description provided for @logoutConfirmContent.
+  ///
+  /// In es, this message translates to:
+  /// **'Vas a volver a la pantalla de inicio de sesión.'**
+  String get logoutConfirmContent;
+
   /// No description provided for @hola.
   ///
   /// In es, this message translates to:

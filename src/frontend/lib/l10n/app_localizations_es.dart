@@ -88,6 +88,33 @@ class AppLocalizationsEs extends AppLocalizations {
   String get loginLinkHere => 'Inicia Sesión';
 
   @override
+  String get authInvalidCredentials => 'Correo o contraseña incorrectos';
+
+  @override
+  String get authEmailInUse => 'Ya existe una cuenta con ese correo';
+
+  @override
+  String get authConnectionError =>
+      'No hay conexión con el servidor. Probá de nuevo.';
+
+  @override
+  String get authUnexpectedError =>
+      'No se pudo completar la operación. Probá de nuevo.';
+
+  @override
+  String get accountSection => 'Cuenta';
+
+  @override
+  String get logout => 'Cerrar sesión';
+
+  @override
+  String get logoutConfirmTitle => '¿Cerrar sesión?';
+
+  @override
+  String get logoutConfirmContent =>
+      'Vas a volver a la pantalla de inicio de sesión.';
+
+  @override
   String get hola => 'Hola 👋';
 
   @override

@@ -10,7 +10,7 @@ Listado general de las funcionalidades implementadas en **PictoComm**, con una d
 
 ## Acceso y sesión
 
-- [**Acceso (login y registro)**](./por-aprobar/acceso.md) — Portada con formulario de email/contraseña que habilita el ingreso al selector de chico. Pendiente de aprobar: no hay requerimiento normativo que la cubra todavía (el login actual no valida credenciales reales).
+- [**Acceso (login, registro y sesión)**](./aprobadas/acceso.md) — Cuentas reales contra el backend: registro y login con credenciales verificadas, sesión recordada (la app abre directo en el selector) y logout desde Perfil; los perfiles de chico quedan atados a la cuenta.
 
 ## Perfiles de niño
 

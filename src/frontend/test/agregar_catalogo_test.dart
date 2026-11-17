@@ -6,6 +6,9 @@ import 'helpers/fakes.dart';
 
 Future<void> _goToHome(WidgetTester tester) async {
   await tester.pumpWidget(PictoCommApp(dependencies: fakeDependencies(children: [testChildProfile()])));
+  // REQ-ACC-01: el primer frame es splash mientras se restaura la sesión;
+  // un pump deja visible el login.
+  await tester.pump();
   await tester.enterText(find.byKey(const Key('login_email')), 'casa@pictocomm.app');
   await tester.enterText(find.byKey(const Key('login_password')), 'secreta123');
   await tester.tap(find.text('Iniciar Sesión'));

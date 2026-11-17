@@ -21,6 +21,9 @@ Picto _picto(String id, String categoryId, String label) => Picto(
 
 Future<void> _goToHome(WidgetTester tester, PictoCommApp app) async {
   await tester.pumpWidget(app);
+  // REQ-ACC-01: el primer frame es splash mientras se restaura la sesión;
+  // un pump deja visible el login.
+  await tester.pump();
   await tester.enterText(find.byKey(const Key('login_email')), 'casa@pictocomm.app');
   await tester.enterText(find.byKey(const Key('login_password')), 'secreta123');
   await tester.tap(find.text('Iniciar Sesión'));

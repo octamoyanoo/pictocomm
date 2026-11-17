@@ -1,6 +1,9 @@
 import 'package:pictocomm/core/di/injector.dart';
 import 'package:pictocomm/core/theme/app_theme.dart';
 import 'package:pictocomm/core/error/app_exception.dart';
+import 'package:pictocomm/features/auth/domain/entities/auth_session.dart';
+import 'package:pictocomm/features/auth/domain/entities/user_account.dart';
+import 'package:pictocomm/features/auth/domain/repositories/auth_repository.dart';
 import 'package:pictocomm/features/catalog/data/datasources/remote_catalog_data_source.dart';import 'package:pictocomm/features/catalog/data/models/category_model.dart';
 import 'package:pictocomm/features/catalog/data/models/picto_model.dart';
 import 'package:pictocomm/features/catalog/domain/entities/category.dart';
@@ -477,10 +480,16 @@ final class FakeChildProfileRepository implements ChildProfileRepository {
   List<ChildProfile> get children => List.unmodifiable(_children);
 
   @override
-  Future<List<ChildProfile>> getChildren() async => _children;
+  Future<List<ChildProfile>> getChildren({String? accountId}) async {
+    // RF-6.6: con cuenta, solo sus perfiles + los legacy (sin cuenta).
+    final visible = accountId == null
+        ? _children
+        : _children.where((child) => child.accountId == null || child.accountId == accountId);
+    return [...visible];
+  }
 
   @override
-  Future<ChildProfile> createChild(ChildProfile child) async {
+  Future<ChildProfile> createChild(ChildProfile child, {String? accountId}) async {
     final name = child.name.trim();
     if (name.isEmpty) {
       throw const DataSourceException('El nombre del niño no puede estar vacío');
@@ -492,6 +501,8 @@ final class FakeChildProfileRepository implements ChildProfileRepository {
       avatarColor: child.avatarColor,
       // El contrato real persiste la foto (RF3.11); el fake también.
       photoUrl: child.photoUrl,
+      // RF-6.6: el fake también taggea la cuenta dueña.
+      accountId: accountId,
     );
     _children.add(persisted);
     return persisted;
@@ -523,16 +534,74 @@ ChildProfile testChildProfile() => ChildProfile(
   avatarColor: AppColors.avatarPalette.first,
 );
 
+/// REQ-ACC-01: autenticación "en memoria" para tests de flujo. Por default
+/// cualquier login/registro con formato válido entra (el formulario valida),
+/// igual que el fake original; `failures` permite simular errores puntuales.
+final class FakeAuthRepository implements AuthRepository {
+  FakeAuthRepository({Map<String, AuthErrorCode>? failures, this.existingSession}) : _failures = failures; // ignore: prefer_initializing_formals
+
+  /// email normalizado → código de error a lanzar en login/registro.
+  final Map<String, AuthErrorCode>? _failures;
+
+  /// Sesión ya guardada en el dispositivo (para tests de RF-6.4).
+  final AuthSession? existingSession;
+
+  AuthSession? _session;
+
+  AuthSession _newSession(UserAccount account) => AuthSession(
+    account: account,
+    token: 'fake-token-${account.id}',
+    expiresAt: DateTime.now().add(const Duration(days: 30)),
+  );
+
+  void _throwIfFailure(String email) {
+    final code = _failures?[email.trim().toLowerCase()];
+    if (code != null) {
+      throw AuthException('fallo simulado para $email', code: code);
+    }
+  }
+
+  @override
+  Future<AuthSession> register({required String name, required String email, required String password}) async {
+    _throwIfFailure(email);
+    final account = UserAccount(id: 'account-test', name: name, email: email.trim().toLowerCase());
+    _session = _newSession(account);
+    return _session!;
+  }
+
+  @override
+  Future<AuthSession> login({required String email, required String password}) async {
+    _throwIfFailure(email);
+    final account = UserAccount(
+      id: 'account-test',
+      name: email.split('@').first,
+      email: email.trim().toLowerCase(),
+    );
+    _session = _newSession(account);
+    return _session!;
+  }
+
+  @override
+  Future<AuthSession?> restoreSession() async => _session ?? existingSession;
+
+  @override
+  Future<void> logout() async {
+    _session = null;
+  }
+}
+
 AppDependencies fakeDependencies({
   List<Category> categories = const <Category>[],
   List<Picto> pictos = const <Picto>[],
   List<ChildProfile> children = const <ChildProfile>[],
   VoiceProvider? voiceProvider,
+  AuthRepository? authRepository,
 }) {
   return AppDependencies(
     categoryRepository: FakeCategoryRepository(categories: categories),
     pictoRepository: FakePictoRepository(pictos: pictos),
     childProfileRepository: FakeChildProfileRepository(children: children),
     voiceProvider: voiceProvider ?? FakeVoiceProvider(),
+    authRepository: authRepository ?? FakeAuthRepository(),
   );
 }

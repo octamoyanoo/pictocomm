@@ -25,7 +25,9 @@ final class _ChildSelectorScreenState extends State<ChildSelectorScreen> {
 
   void _selectChild(ChildProfile child) {
     context.read<SessionProvider>().setActiveChild(child);
-    Navigator.of(context).pushReplacementNamed(AppRoutes.home);
+    // REQ-ACC-01: push (no replacement) — la ruta raíz es el AuthGate y tiene
+    // que quedar en el stack para que el logout pueda volver al login (RF-6.5).
+    Navigator.of(context).pushNamed(AppRoutes.home);
   }
 
   @override

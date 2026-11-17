@@ -8,6 +8,8 @@ import 'helpers/fakes.dart';
 void main() {
   testWidgets('login rechaza submit sin datos y no navega', (tester) async {
     await tester.pumpWidget(PictoCommApp(dependencies: fakeDependencies()));
+    // REQ-ACC-01: splash mientras se restaura la sesión; un pump muestra el login.
+    await tester.pump();
 
     expect(find.text('PictoComm'), findsOneWidget);
     expect(find.text('Iniciar Sesión'), findsOneWidget);
@@ -21,6 +23,8 @@ void main() {
 
   testWidgets('login con datos validos navega al selector de chico', (tester) async {
     await tester.pumpWidget(PictoCommApp(dependencies: fakeDependencies()));
+    // REQ-ACC-01: splash mientras se restaura la sesión; un pump muestra el login.
+    await tester.pump();
 
     await tester.enterText(find.byKey(const Key('login_email')), 'casa@pictocomm.app');
     await tester.enterText(find.byKey(const Key('login_password')), 'secreta123');
@@ -40,6 +44,8 @@ void main() {
         ),
       ),
     );
+    // REQ-ACC-01: splash mientras se restaura la sesión; un pump muestra el login.
+    await tester.pump();
 
     await tester.enterText(find.byKey(const Key('login_email')), 'casa@pictocomm.app');
     await tester.enterText(find.byKey(const Key('login_password')), 'secreta123');
@@ -57,6 +63,8 @@ void main() {
     await tester.binding.setSurfaceSize(const Size(800, 1200));
     addTearDown(() => tester.binding.setSurfaceSize(null));
     await tester.pumpWidget(PictoCommApp(dependencies: fakeDependencies()));
+    // REQ-ACC-01: splash mientras se restaura la sesión; un pump muestra el login.
+    await tester.pump();
 
     await tester.tap(find.byKey(const Key('login_register_link')));
     await tester.pumpAndSettle();
@@ -78,6 +86,8 @@ void main() {
     await tester.binding.setSurfaceSize(const Size(800, 1200));
     addTearDown(() => tester.binding.setSurfaceSize(null));
     await tester.pumpWidget(PictoCommApp(dependencies: fakeDependencies()));
+    // REQ-ACC-01: splash mientras se restaura la sesión; un pump muestra el login.
+    await tester.pump();
 
     await tester.tap(find.byKey(const Key('login_register_link')));
     await tester.pumpAndSettle();

@@ -30,6 +30,15 @@
   "haveAccount": "¿Ya tienes cuenta? ",
   "loginLinkHere": "Inicia Sesión",
 
+  "authInvalidCredentials": "Correo o contraseña incorrectos",
+  "authEmailInUse": "Ya existe una cuenta con ese correo",
+  "authConnectionError": "No hay conexión con el servidor. Probá de nuevo.",
+  "authUnexpectedError": "No se pudo completar la operación. Probá de nuevo.",
+  "accountSection": "Cuenta",
+  "logout": "Cerrar sesión",
+  "logoutConfirmTitle": "¿Cerrar sesión?",
+  "logoutConfirmContent": "Vas a volver a la pantalla de inicio de sesión.",
+
   "hola": "Hola 👋",
   "holaName": "Hola, {name} 👋",
   "@holaName": { "placeholders": { "name": { "type": "String" } } },

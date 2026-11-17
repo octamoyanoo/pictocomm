@@ -1,8 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:pictocomm/l10n/app_localizations.dart';
+import 'package:provider/provider.dart';
 
 import '../../../../core/constants/app_routes.dart';
+import '../../../../core/error/app_exception.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../providers/auth_provider.dart';
+import '../widgets/auth_error_message.dart';
 
 final class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -19,6 +23,8 @@ final class _LoginScreenState extends State<LoginScreen> {
   final _passwordController = TextEditingController();
 
   bool _obscurePassword = true;
+  bool _submitting = false;
+  AuthErrorCode? _error;
 
   @override
   void dispose() {
@@ -27,11 +33,37 @@ final class _LoginScreenState extends State<LoginScreen> {
     super.dispose();
   }
 
-  void _submit() {
+  /// REQ-ACC-01 (RF-6.2): valida el formato localmente y verifica las
+  /// credenciales contra el backend. El éxito NO navega acá: la sesión
+  /// activa al [AuthGate] (home) para mostrar el selector de chico.
+  Future<void> _submit() async {
     if (!(_formKey.currentState?.validate() ?? false)) {
       return;
     }
-    Navigator.of(context).pushReplacementNamed(AppRoutes.childSelector);
+    setState(() {
+      _submitting = true;
+      _error = null;
+    });
+    try {
+      await context.read<AuthProvider>().login(
+        email: _emailController.text.trim(),
+        password: _passwordController.text,
+      );
+      if (!mounted) {
+        return;
+      }
+      // Si el login se abrió como ruta (pushed), volver a la raíz: AuthGate
+      // ya muestra el selector por el cambio de estado.
+      Navigator.of(context).popUntil((route) => route.isFirst);
+    } on AuthException catch (error) {
+      if (mounted) {
+        setState(() => _error = error.code);
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _submitting = false);
+      }
+    }
   }
 
   @override
@@ -103,7 +135,26 @@ final class _LoginScreenState extends State<LoginScreen> {
                               onFieldSubmitted: (_) => _submit(),
                             ),
                             const SizedBox(height: 24),
-                            ElevatedButton(onPressed: _submit, child: Text(l10n.loginButton)),
+                            ElevatedButton(
+                              onPressed: _submitting ? null : _submit,
+                              child: _submitting
+                                  ? const SizedBox(
+                                      width: 20,
+                                      height: 20,
+                                      child: CircularProgressIndicator(strokeWidth: 2.4),
+                                    )
+                                  : Text(l10n.loginButton),
+                            ),
+                            // RF-6.8: el error de autenticación va bajo el
+                            // botón (las validaciones de campo quedan arriba).
+                            if (_error != null) ...[
+                              const SizedBox(height: 12),
+                              Text(
+                                authErrorMessage(_error!, l10n),
+                                textAlign: TextAlign.center,
+                                style: const TextStyle(fontSize: 14, color: AppColors.error),
+                              ),
+                            ],
                             const SizedBox(height: 24),
                             const Divider(color: AppColors.surfaceSecondary, thickness: 1),
                             const SizedBox(height: 16),

@@ -88,6 +88,32 @@ class AppLocalizationsPt extends AppLocalizations {
   String get loginLinkHere => 'Entrar';
 
   @override
+  String get authInvalidCredentials => 'E-mail ou senha incorretos';
+
+  @override
+  String get authEmailInUse => 'Já existe uma conta com este e-mail';
+
+  @override
+  String get authConnectionError =>
+      'Sem conexão com o servidor. Tente novamente.';
+
+  @override
+  String get authUnexpectedError =>
+      'Não foi possível concluir a operação. Tente novamente.';
+
+  @override
+  String get accountSection => 'Conta';
+
+  @override
+  String get logout => 'Sair da conta';
+
+  @override
+  String get logoutConfirmTitle => 'Sair da conta?';
+
+  @override
+  String get logoutConfirmContent => 'Você voltará à tela de login.';
+
+  @override
   String get hola => 'Olá 👋';
 
   @override

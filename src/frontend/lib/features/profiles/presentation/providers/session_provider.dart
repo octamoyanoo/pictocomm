@@ -25,4 +25,13 @@ class SessionProvider extends ChangeNotifier {
       notifyListeners();
     }
   }
+
+  /// REQ-ACC-01 (RF-6.5): al cerrar sesión, el chico activo deja de existir
+  /// (el próximo login arranca de nuevo en el selector).
+  void clear() {
+    if (_activeChild != null) {
+      _activeChild = null;
+      notifyListeners();
+    }
+  }
 }

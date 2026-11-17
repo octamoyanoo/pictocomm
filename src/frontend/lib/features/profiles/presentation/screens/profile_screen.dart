@@ -8,13 +8,15 @@ import '../../../../core/i18n/locale_controller.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/utils/data_url.dart';
 import '../../../../core/widgets/app_bottom_nav.dart';
+import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../../sync/presentation/sync_status_card.dart';
 import '../../domain/entities/child_profile.dart';
 import '../providers/children_provider.dart';
 import '../providers/session_provider.dart';
 import '../widgets/child_avatar.dart';
 
-/// Gestión de perfiles de niño, modo adulto (RF2.5–RF2.8).
+/// Gestión de perfiles de niño, modo adulto (RF2.5–RF2.8) + cuenta
+/// (REQ-ACC-01 RF-6.5: cerrar sesión).
 final class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
 
@@ -36,6 +38,25 @@ final class _ProfileScreenState extends State<ProfileScreen> {
       return;
     }
     await context.read<ChildrenProvider>().createChild(newChild.$1, null, newChild.$2, newChild.$3);
+  }
+
+  /// REQ-ACC-01 (RF-6.5): cerrar sesión con confirmación. Al terminar, la
+  /// raíz (AuthGate) ya muestra el login por el cambio de estado del
+  /// [AuthProvider]; acá solo se limpia la sesión de chico activo y el stack.
+  Future<void> _logout() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (_) => const _ConfirmLogoutDialog(),
+    );
+    if (confirmed != true || !mounted) {
+      return;
+    }
+    context.read<SessionProvider>().clear();
+    await context.read<AuthProvider>().logout();
+    if (!mounted) {
+      return;
+    }
+    Navigator.of(context).popUntil((route) => route.isFirst);
   }
 
   Future<void> _deleteChild(ChildProfile child) async {
@@ -66,7 +87,7 @@ final class _ProfileScreenState extends State<ProfileScreen> {
         child: switch (state) {
           ChildrenLoadingState() => const Center(child: CircularProgressIndicator(color: AppColors.accent)),
           ChildrenFailureState() => Center(child: Text(AppLocalizations.of(context)!.profilesLoadError(state.message))),
-          ChildrenLoadedState() => _ProfileContent(children: state.children, onAdd: _addChild, onDelete: _deleteChild),
+          ChildrenLoadedState() => _ProfileContent(children: state.children, onAdd: _addChild, onDelete: _deleteChild, onLogout: _logout),
         },
       ),
       bottomNavigationBar: const AppBottomNav(currentIndex: 3),
@@ -75,11 +96,17 @@ final class _ProfileScreenState extends State<ProfileScreen> {
 }
 
 final class _ProfileContent extends StatelessWidget {
-  const _ProfileContent({required this.children, required this.onAdd, required this.onDelete});
+  const _ProfileContent({
+    required this.children,
+    required this.onAdd,
+    required this.onDelete,
+    required this.onLogout,
+  });
 
   final List<ChildProfile> children;
   final Future<void> Function() onAdd;
   final ValueChanged<ChildProfile> onDelete;
+  final Future<void> Function() onLogout;
 
   @override
   Widget build(BuildContext context) {
@@ -91,6 +118,9 @@ final class _ProfileContent extends StatelessWidget {
           alignment: Alignment.centerLeft,
           child: Text(l10n.profileTitle, style: Theme.of(context).textTheme.titleLarge),
         ),
+        const SizedBox(height: 20),
+        // REQ-ACC-01 (RF-6.5): cuenta logueada + cerrar sesión.
+        _AccountSection(onLogout: onLogout),
         const SizedBox(height: 20),
         // RF4.2: selector de idioma de la UI, espacio del adulto. El cambio
         // aplica en el momento (RF4.3) vía LocaleController sobre MaterialApp.
@@ -125,6 +155,77 @@ final class _ProfileContent extends StatelessWidget {
             ),
           ),
         for (final child in children) _ChildTile(child: child, onDelete: () => onDelete(child)),
+      ],
+    );
+  }
+}
+
+/// REQ-ACC-01 (RF-6.5): la cuenta logueada con su botón de cerrar sesión.
+final class _AccountSection extends StatelessWidget {
+  const _AccountSection({required this.onLogout});
+
+  final Future<void> Function() onLogout;
+
+  @override
+  Widget build(BuildContext context) {
+    final auth = context.watch<AuthProvider>();
+    final l10n = AppLocalizations.of(context)!;
+    return switch (auth.state) {
+      // Solo se muestra con sesión (la pantalla no existe sin sesión).
+      AuthAuthenticatedState(:final account) => Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        decoration: BoxDecoration(color: AppColors.surface, borderRadius: BorderRadius.circular(16)),
+        child: Row(
+          children: [
+            const Icon(Icons.person_outline, color: AppColors.accent, size: 22),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    account.name,
+                    style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: AppColors.textPrimary),
+                  ),
+                  Text(
+                    account.email,
+                    style: const TextStyle(fontSize: 13, color: AppColors.textSecondary),
+                  ),
+                ],
+              ),
+            ),
+            TextButton.icon(
+              onPressed: onLogout,
+              icon: const Icon(Icons.logout, size: 20),
+              label: Text(l10n.logout),
+              style: TextButton.styleFrom(foregroundColor: AppColors.error),
+            ),
+          ],
+        ),
+      ),
+      _ => const SizedBox.shrink(),
+    };
+  }
+}
+
+/// REQ-ACC-01 (RF-6.5): confirmación antes de cerrar sesión.
+final class _ConfirmLogoutDialog extends StatelessWidget {
+  const _ConfirmLogoutDialog();
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    return AlertDialog(
+      title: Text(l10n.logoutConfirmTitle),
+      content: Text(l10n.logoutConfirmContent),
+      actions: [
+        TextButton(onPressed: () => Navigator.of(context).pop(false), child: Text(l10n.cancel)),
+        TextButton(
+          key: const Key('logout_confirm'),
+          onPressed: () => Navigator.of(context).pop(true),
+          style: TextButton.styleFrom(foregroundColor: AppColors.error),
+          child: Text(l10n.logout),
+        ),
       ],
     );
   }

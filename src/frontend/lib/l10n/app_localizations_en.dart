@@ -88,6 +88,32 @@ class AppLocalizationsEn extends AppLocalizations {
   String get loginLinkHere => 'Sign In';
 
   @override
+  String get authInvalidCredentials => 'Incorrect email or password';
+
+  @override
+  String get authEmailInUse => 'An account with this email already exists';
+
+  @override
+  String get authConnectionError =>
+      'No connection to the server. Please try again.';
+
+  @override
+  String get authUnexpectedError =>
+      'The operation could not be completed. Please try again.';
+
+  @override
+  String get accountSection => 'Account';
+
+  @override
+  String get logout => 'Sign out';
+
+  @override
+  String get logoutConfirmTitle => 'Sign out?';
+
+  @override
+  String get logoutConfirmContent => 'You will return to the sign-in screen.';
+
+  @override
   String get hola => 'Hi 👋';
 
   @override

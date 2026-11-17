@@ -4,7 +4,7 @@
 
 App Flutter (local-first) para comunicación por imágenes en niños autistas no verbales de 2-5 años.
 
-Frontend definido y verificado. **Backend v1 (REQ-BCK-01, solo descarga) aprobado**: `src/backend/` es un paquete Dart (shelf) que sirve el catálogo remoto desde un seed JSON; la app lo sincroniza al arrancar y lo mergea local (spec en `docs/specs/aprobadas/backend-sync.md`). **v2 aprobado (REQ-CAT-02 + REQ-BCK-02, specs en `aprobadas/`)**: pictos multicategoría (`categoryIds`) + edición de custom, y subida bidireccional (POST/PUT/DELETE, `data/uploads.json`, outbox con reintentos, borrado lógico con tumbas, indicador de sync en Perfil).
+Frontend definido y verificado. **Backend v1 (REQ-BCK-01, solo descarga) aprobado**: `src/backend/` es un paquete Dart (shelf) que sirve el catálogo remoto desde un seed JSON; la app lo sincroniza al arrancar y lo mergea local (spec en `docs/specs/aprobadas/backend-sync.md`). **v2 aprobado (REQ-CAT-02 + REQ-BCK-02, specs en `aprobadas/`)**: pictos multicategoría (`categoryIds`) + edición de custom, y subida bidireccional (POST/PUT/DELETE, `data/uploads.json`, outbox con reintentos, borrado lógico con tumbas, indicador de sync en Perfil). **Auth (REQ-ACC-01, aprobado, spec en `aprobadas/`)**: cuentas reales con `/api/v1/auth/*` (`data/accounts.json`, PBKDF2 + token opaco de 30 días), sesión recordada (la app abre directo en el selector), logout en Perfil y perfiles de chico tageados con `accountId`.
 
 ## Objetivo del Proyecto
 
@@ -13,7 +13,7 @@ Ver [overview.md](overview.md) para detalles del propósito y alcance del proyec
 ## Ubicación del código
 
 - **frontend (app Flutter)**: `src/frontend/`
-- **backend (API del catálogo remoto)**: `src/backend/` — paquete **Dart puro** (sin Flutter): `bin/server.dart` (server shelf), `lib/src/` (store del seed + router de la API), `data/seed.json` + `data/images/` (el catálogo), `test/`. Corre con `dart run bin/server.dart` desde esa carpeta.
+- **backend (API del catálogo remoto + cuentas)**: `src/backend/` — paquete **Dart puro** (sin Flutter): `bin/server.dart` (server shelf), `lib/src/` (store del seed + store de cuentas + router de la API), `data/seed.json` + `data/images/` (el catálogo) + `data/accounts.json` (cuentas y sesiones, se crea al primer registro), `test/`. Corre con `dart run bin/server.dart` desde esa carpeta.
 
 ## Arquitectura: Clean Architecture ligera por features
 
@@ -54,7 +54,8 @@ presentation  →  domain  ←  data
 | Imagen que toca el niño | `Picto` | Antes se llamaba `ImageItem`. **No usar `Symbol`**: colisiona con `dart:core.Symbol`. |
 | De dónde sale la imagen | `PictoSource` | enum `bundled` / `custom` / `remote` |
 | Grupo de pictos | `Category` | |
-| Niño usuario | `ChildProfile` | Varios niños por dispositivo |
+| Niño usuario | `ChildProfile` | Varios niños por dispositivo; `accountId` = cuenta dueña (null = legacy) |
+| Adulto responsable | `UserAccount` | Cuenta del backend; el dispositivo solo guarda la `AuthSession` |
 
 `PictoSource` existe para evitar el `if (isLocal) Image.file else Image.asset` disperso por los widgets: el `switch` queda en un solo lugar (`PictoCard`).
 
@@ -69,6 +70,15 @@ La app es **local-first**: lee SIEMPRE de local y funciona sin conexión. Sigue 
 - `test/helpers/fakes.dart` incluye `ExplodingRemoteDataSource`: falla ruidosamente si algún camino de **lectura** toca el remoto. Si un test lo dispara, hay un bug de local-first. `FakeRemoteCatalogDataSource` simula el backend para tests del sync.
 - `Picto` ya tiene `createdAt`/`updatedAt`; la subida de pictos custom (bidireccional) es v2.
 
+## Cuentas y acceso (REQ-ACC-01)
+
+- Endpoints: `POST /api/v1/auth/register`, `POST /api/v1/auth/login`, `GET /api/v1/auth/me` (Bearer), `POST /api/v1/auth/logout`. Persistidos en `data/accounts.json` (cuentas con hash PBKDF2-HMAC-SHA256 + sesiones con token opaco de 30 días; sobreviven reinicios).
+- El frontend tiene feature `auth/` completa (`domain`/`data`/`presentation`): `AuthRepository` → `LocalAuthRepository` (único camino al remote de auth), sesión recordada en SharedPreferences (`pictocomm.auth_session`, sin contraseña). La pantalla inicial es el `AuthGate` en `app.dart` (home, no ruta): splash → login → selector según el estado del `AuthProvider`.
+- **El login es la única cosa que necesita red en el primer uso**; con sesión recordada la app abre sin conexión (el cache vale mientras el token no venció). El éxito de login/registro NO navega: cambia el estado y el `AuthGate` se reconstruye.
+- Los `ChildProfile` llevan `accountId` (RF-6.6): `getChildren({accountId})` filtra por cuenta + los legacy sin cuenta; `createChild(child, {accountId})` tagea. `ChildrenProvider` recibe la cuenta del `AuthProvider` (inyectada en `AppRouter`).
+- La ruta `/` es el `AuthGate`: **no reemplazarla** (`pushReplacementNamed` desde el selector rompería el logout). Logout = `AuthProvider.logout()` + `SessionProvider.clear()` + `popUntil(isFirst)`.
+- Tests de auth: `test/auth_test.dart` (frontend, con `FakeAuthRepository` que permite inyectar errores por email) y `test/auth_test.dart` del backend (`src/backend/test/auth_test.dart`).
+
 ## Documentación: flujo specs ↔ requerimientos
 
 La documentación funcional tiene dos capas con roles distintos (convenio tomado del repo ControlStock):
@@ -79,9 +89,9 @@ La documentación funcional tiene dos capas con roles distintos (convenio tomado
 | **Spec de usuario** | `docs/specs/aprobadas/` y `docs/specs/por-aprobar/` | **Cómo lo hace hoy** (descripción real del código): comportamiento, archivos, validaciones, limitaciones | Después de implementar o al cambiar una funcionalidad |
 
 - El índice de funcionalidades es [`docs/specs/0000-index.md`](docs/specs/0000-index.md): toda funcionalidad con spec está listada ahí, con link. Un spec nuevo arranca en `por-aprobar/` y pasa a `aprobadas/` cuando se revisó contra el código.
-- Cada REQ referencia sus specs vigentes en el header, y cada spec referencia su REQ (o marca que no existe, como `por-aprobar/acceso.md`: login sin requerimiento que lo cubra).
+- Cada REQ referencia sus specs vigentes en el header, y cada spec referencia su REQ (o marca que no existe). `aprobadas/acceso.md` (REQ-ACC-01) pasó a aprobadas el 2026-11-17 tras la revisión contra el código.
 - **Regla de actualización**: cambiar una funcionalidad = actualizar el REQ primero (si cambia la normativa) y luego su spec. Si el código y el spec difieren, es un bug o un spec desactualizado: nunca "documentar el bug" en silencio.
-- Los RF se numeran `RF-<modulo>.<n>` por documento (RF-1.x comunicación, RF-2.x perfiles, RF-3.x catálogo, RF-4.x idioma, RF-5.x backend); igual para RNF y CA.
+- Los RF se numeran `RF-<modulo>.<n>` por documento (RF-1.x comunicación, RF-2.x perfiles, RF-3.x catálogo, RF-4.x idioma, RF-5.x backend, RF-6.x acceso/cuentas); igual para RNF y CA.
 - No crear documentos RF sueltos en la raíz de `requerimientos/`: un requerimiento nuevo es un `REQ-*` nuevo en `implementados/` (o una sección nueva en el existente si es la misma feature).
 
 ## Comandos
@@ -118,6 +128,7 @@ Para probar sync en emulador Android: `flutter run --dart-define=PICTOCOMM_BACKE
 
 ## Testing
 
-- `test/helpers/fakes.dart` centraliza los fakes. Todo pide interfaces, así que los widget tests inyectan `fakeDependencies()` y no tocan `AssetManifest`.
+- `test/helpers/fakes.dart` centraliza los fakes. Todo pide interfaces, así que los widget tests inyectan `fakeDependencies()` y no tocan `AssetManifest`. `FakeAuthRepository` acepta `failures: {email: AuthErrorCode}` y `existingSession` (RF-6.4).
+- Los tests de flujo arrancan en el login: después de `pumpWidget` hace falta **un `pump()` extra** (el primer frame es el splash del `AuthGate` mientras se restaura la sesión). No agrandes la superficie con `setSurfaceSize` en tests que abren diálogos: el diálogo se centra según la superficie "lógica" y los botones pueden quedar bajo el borde real (taps al vacío).
 - Al agregar un método a una interfaz de `domain/`, actualizar los fakes: el compiler avisa, que es justamente el objetivo.
 - Los fakes deben respetar el **mismo contrato** que la implementación real (mismas excepciones). Un fake más permisivo esconde bugs.

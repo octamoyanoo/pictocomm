@@ -93,7 +93,9 @@ final class _CategoryContent extends StatelessWidget {
     try {
       await provider.deleteCategory(category.id);
       if (context.mounted) {
-        Navigator.of(context).pushNamedAndRemoveUntil(AppRoutes.home, (route) => false);
+        // REQ-ACC-01: se conserva la ruta raíz (AuthGate) — si el stack se
+        // limpia por completo, el logout pierde a dónde volver (RF-6.5).
+        Navigator.of(context).pushNamedAndRemoveUntil(AppRoutes.home, (route) => route.isFirst);
       }
     } on AppException catch (error) {
       if (context.mounted) {

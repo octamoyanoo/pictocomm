@@ -1,8 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:pictocomm/l10n/app_localizations.dart';
+import 'package:provider/provider.dart';
 
 import '../../../../core/constants/app_routes.dart';
+import '../../../../core/error/app_exception.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../providers/auth_provider.dart';
+import '../widgets/auth_error_message.dart';
 
 final class SignUpScreen extends StatefulWidget {
   const SignUpScreen({super.key});
@@ -22,6 +26,8 @@ final class _SignUpScreenState extends State<SignUpScreen> {
 
   bool _obscurePassword = true;
   bool _obscureConfirmPassword = true;
+  bool _submitting = false;
+  AuthErrorCode? _error;
 
   @override
   void dispose() {
@@ -42,11 +48,36 @@ final class _SignUpScreenState extends State<SignUpScreen> {
     return null;
   }
 
-  void _submit() {
+  /// REQ-ACC-01 (RF-6.1): valida formato localmente, crea la cuenta en el
+  /// backend y queda logueado. El éxito vuelve a la raíz: el [AuthGate]
+  /// muestra el selector de chico por el cambio de estado.
+  Future<void> _submit() async {
     if (!(_formKey.currentState?.validate() ?? false)) {
       return;
     }
-    Navigator.of(context).pushNamedAndRemoveUntil(AppRoutes.childSelector, (route) => false);
+    setState(() {
+      _submitting = true;
+      _error = null;
+    });
+    try {
+      await context.read<AuthProvider>().register(
+        name: _nameController.text.trim(),
+        email: _emailController.text.trim(),
+        password: _passwordController.text,
+      );
+      if (!mounted) {
+        return;
+      }
+      Navigator.of(context).popUntil((route) => route.isFirst);
+    } on AuthException catch (error) {
+      if (mounted) {
+        setState(() => _error = error.code);
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _submitting = false);
+      }
+    }
   }
 
   @override
@@ -164,7 +195,25 @@ final class _SignUpScreenState extends State<SignUpScreen> {
                               onFieldSubmitted: (_) => _submit(),
                             ),
                             const SizedBox(height: 24),
-                            ElevatedButton(onPressed: _submit, child: Text(l10n.createAccountButton)),
+                            ElevatedButton(
+                              onPressed: _submitting ? null : _submit,
+                              child: _submitting
+                                  ? const SizedBox(
+                                      width: 20,
+                                      height: 20,
+                                      child: CircularProgressIndicator(strokeWidth: 2.4),
+                                    )
+                                  : Text(l10n.createAccountButton),
+                            ),
+                            // RF-6.8: error de autenticación bajo el botón.
+                            if (_error != null) ...[
+                              const SizedBox(height: 12),
+                              Text(
+                                authErrorMessage(_error!, l10n),
+                                textAlign: TextAlign.center,
+                                style: const TextStyle(fontSize: 14, color: AppColors.error),
+                              ),
+                            ],
                             const SizedBox(height: 24),
                             const Divider(color: AppColors.surfaceSecondary, thickness: 1),
                             const SizedBox(height: 16),

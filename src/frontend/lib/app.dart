@@ -8,6 +8,7 @@ import 'core/constants/app_routes.dart';
 import 'core/di/injector.dart';
 import 'core/i18n/locale_controller.dart';
 import 'core/theme/app_theme.dart';
+import 'features/auth/presentation/providers/auth_provider.dart';
 import 'features/auth/presentation/screens/login_screen.dart';
 import 'features/auth/presentation/screens/sign_up_screen.dart';
 import 'features/catalog/domain/entities/category.dart';
@@ -29,7 +30,7 @@ import 'features/sync/sync_service.dart';
 import 'features/voice/domain/voice_provider.dart';
 
 final class AppRouter {
-  AppRouter(this._dependencies, SessionProvider session)
+  AppRouter(this._dependencies, SessionProvider session, this._authProvider)
       : _catalogProvider = CatalogProvider(
           categoryRepository: _dependencies.categoryRepository,
           pictoRepository: _dependencies.pictoRepository,
@@ -44,6 +45,10 @@ final class AppRouter {
         );
 
   final AppDependencies _dependencies;
+
+  /// REQ-ACC-01 (RF-6.6): la cuenta logueada filtra los ChildProfile del
+  /// selector y taggea los nuevos.
+  final AuthProvider _authProvider;
 
   /// Providers compartidos entre rutas (ver nota en PictosProvider):
   /// borrar o crear en una pantalla deja consistentes las demás.
@@ -77,10 +82,18 @@ final class AppRouter {
 
   ChangeNotifierProvider<ChildrenProvider> _childrenRoute(Widget screen) {
     return ChangeNotifierProvider<ChildrenProvider>(
-      create: (_) => ChildrenProvider(childProfileRepository: _dependencies.childProfileRepository)..load(),
+      create: (_) => ChildrenProvider(
+        childProfileRepository: _dependencies.childProfileRepository,
+        // RF-6.6: solo los perfiles de la cuenta logueada (null = gestión).
+        accountId: _authProvider.currentAccountId,
+      )..load(),
       child: screen,
     );
   }
+
+  /// REQ-ACC-01: el [AuthGate] (home) muestra el selector en línea cuando
+  /// hay sesión; usa el mismo wiring de providers que la ruta `/child-selector`.
+  Widget childSelectorRoute() => _childrenRoute(const ChildSelectorScreen());
 
   Route<dynamic>? onGenerateRoute(RouteSettings settings) {
     switch (settings.name) {
@@ -172,7 +185,12 @@ final class PictoCommApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final session = SessionProvider();
-    final appRouter = AppRouter(dependencies, session);
+    // REQ-ACC-01 (RF-6.4): al arrancar se restaura la sesión recordada.
+    // Mientras corre (microtarea) la pantalla inicial es un splash; después
+    // el AuthGate decide login vs selector de chico.
+    final auth = AuthProvider(authRepository: dependencies.authRepository);
+    unawaited(auth.restore());
+    final appRouter = AppRouter(dependencies, session, auth);
     // REQ-BCK-02 (RF-5.19): servicio de sync observable, provisto global.
     // En tests con fakes (sin backend) queda en no-op sin UI rota.
     final syncService = SyncService(catalogRepository: dependencies.catalogRepository);
@@ -198,31 +216,63 @@ final class PictoCommApp extends StatelessWidget {
         value: syncService,
         child: ChangeNotifierProvider<SessionProvider>.value(
           value: session,
-          // El Builder observa (watch) el controller: cuando el idioma cambia
-          // (RF4.3) se reconstruye el MaterialApp completo con el locale nuevo.
-          // SIN esto el MaterialApp quedaba construido con el locale viejo,
-          // porque el provider solo reconstruye a quien hace watch.
-          child: Builder(
-            builder: (context) {
-              final locale = context.watch<LocaleController>().locale;
-              return MaterialApp(
-                title: 'PictoComm',
-                debugShowCheckedModeBanner: false,
-                theme: AppTheme.light(),
-                locale: locale,
-                supportedLocales: const [
-                  Locale('es'),
-                  Locale('en'),
-                  Locale('pt'),
-                ],
-                localizationsDelegates: AppLocalizations.localizationsDelegates,
-                initialRoute: AppRoutes.login,
-                onGenerateRoute: appRouter.onGenerateRoute,
-              );
-            },
+          // REQ-ACC-01: el estado de autenticación vive al nivel de la app
+          // (lo consume el AuthGate de la pantalla inicial y el logout del
+          // Perfil, RF-6.5).
+          child: ChangeNotifierProvider<AuthProvider>.value(
+            value: auth,
+            // El Builder observa (watch) el controller: cuando el idioma cambia
+            // (RF4.3) se reconstruye el MaterialApp completo con el locale nuevo.
+            // SIN esto el MaterialApp quedaba construido con el locale viejo,
+            // porque el provider solo reconstruye a quien hace watch.
+            child: Builder(
+              builder: (context) {
+                final locale = context.watch<LocaleController>().locale;
+                return MaterialApp(
+                  title: 'PictoComm',
+                  debugShowCheckedModeBanner: false,
+                  theme: AppTheme.light(),
+                  locale: locale,
+                  supportedLocales: const [
+                    Locale('es'),
+                    Locale('en'),
+                    Locale('pt'),
+                  ],
+                  localizationsDelegates: AppLocalizations.localizationsDelegates,
+                  // REQ-ACC-01: la pantalla inicial es el AuthGate (home):
+                  // splash mientras se restaura la sesión, login si no hay,
+                  // selector de chico si la sesión recordada es válida (RF-6.4).
+                  home: AuthGate(router: appRouter),
+                  onGenerateRoute: appRouter.onGenerateRoute,
+                );
+              },
+            ),
           ),
         ),
       ),
     );
+  }
+}
+
+/// REQ-ACC-01 (RF-6.4): decide qué muestra la pantalla inicial según el
+/// estado de autenticación. El éxito de login/registro NO navega: cambia el
+/// estado del [AuthProvider] y este widget se reconstruye con el selector.
+final class AuthGate extends StatelessWidget {
+  const AuthGate({required this.router, super.key});
+
+  final AppRouter router;
+
+  @override
+  Widget build(BuildContext context) {
+    final auth = context.watch<AuthProvider>();
+    return switch (auth.state) {
+      // Mientras se restaura la sesión recordada (microtarea, RF-6.4).
+      AuthUnknownState() => const Scaffold(
+        body: Center(child: CircularProgressIndicator(color: AppColors.accent)),
+      ),
+      AuthUnauthenticatedState() => const LoginScreen(),
+      // Con sesión: directo al selector (el login queda fuera del stack).
+      AuthAuthenticatedState() => router.childSelectorRoute(),
+    };
   }
 }
